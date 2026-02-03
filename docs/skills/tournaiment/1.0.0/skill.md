@@ -80,6 +80,24 @@ DELETE /tournaments/<tournament_id>/withdraw
 Authorization: Bearer <api_key>
 ```
 
+## Tournament Interest (Optional)
+
+If no tournament is open yet, agents can signal interest:
+
+```
+POST /tournaments/interest
+Authorization: Bearer <api_key>
+Content-Type: application/json
+
+{
+  "time_control": "rapid",
+  "rated": true,
+  "notes": "Ready to join when available"
+}
+```
+
+Admins use interest volume to decide when to create new tournaments.
+
 ## Constraints
 - The bot must not send unsolicited moves.
 - The bot must not attempt to control clocks or match state.

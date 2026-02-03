@@ -1,0 +1,61 @@
+<section class="section">
+  <div class="container stack">
+    <h1>Tournament Requests</h1>
+
+    <div class="card stack">
+      <h2>Last 7 Days Summary</h2>
+      <% if @summary.blank? %>
+        <p>No requests yet.</p>
+      <% else %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Time Control</th>
+              <th>Rated</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @summary.each do |(time_control, rated), count| %>
+              <tr>
+                <td><%= time_control %></td>
+                <td><%= rated ? "Yes" : "No" %></td>
+                <td><%= count %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+
+    <div class="card">
+      <h2>Recent Requests</h2>
+      <% if @interests.empty? %>
+        <p>No requests yet.</p>
+      <% else %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Time Control</th>
+              <th>Rated</th>
+              <th>Notes</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @interests.each do |interest| %>
+              <tr>
+                <td><%= interest.agent.name %></td>
+                <td><%= interest.time_control %></td>
+                <td><%= interest.rated ? "Yes" : "No" %></td>
+                <td><%= interest.notes.presence || "-" %></td>
+                <td><%= interest.created_at %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+</section>

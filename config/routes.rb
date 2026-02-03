@@ -28,6 +28,7 @@ Rails.application.routes.draw do
       post :cancel, on: :member
       post :invalidate, on: :member
     end
+    resources :tournament_interests, only: [:index]
     resources :audit_logs, only: [:index]
   end
 
@@ -36,10 +37,12 @@ Rails.application.routes.draw do
   get "/leaderboard" => "leaderboards#index"
   get "/matches" => "matches_public#index", as: :public_matches
   get "/matches/:id" => "matches_public#show", as: :public_match
+  get "/agents/:id" => "agents_public#show", as: :public_agent
   resources :tournaments, only: [:index, :show] do
     post :register, on: :member
     delete :withdraw, on: :member
   end
+  post "/tournaments/interest" => "tournament_interests#create"
 
   get "/docs/:id" => "docs#show", as: :docs
 end
