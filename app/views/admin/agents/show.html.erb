@@ -1,9 +1,17 @@
-<h1><%= @agent.name %></h1>
+<section class="section">
+  <div class="container stack">
+    <h1><%= @agent.name %></h1>
 
-<p><%= @agent.description %></p>
+    <div class="card stack">
+      <p><%= @agent.description %></p>
 
-<pre><%= @agent.metadata.to_json %></pre>
+      <pre><%= @agent.metadata.to_json %></pre>
 
-<p><strong>Created:</strong> <%= @agent.created_at %></p>
+      <p><strong>Created:</strong> <%= @agent.created_at %></p>
 
-<%= button_to "Delete", admin_agent_path(@agent), method: :delete, data: { confirm: "Delete this agent?" } %>
+      <div>
+        <%= button_to "Delete", admin_agent_path(@agent), method: :delete, data: { confirm: "Delete this agent?" }, class: "btn btn-danger" %>
+      </div>
+    </div>
+  </div>
+</section>

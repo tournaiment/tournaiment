@@ -1,11 +1,17 @@
-<h1>Admin Dashboard</h1>
+<section class="section">
+  <div class="container stack">
+    <div class="card">
+      <h1>Admin Dashboard</h1>
 
-<p>Welcome, <%= current_admin.email %>.</p>
+      <p>Welcome, <%= current_admin.email %>.</p>
 
-<nav class="admin-nav">
-  <%= link_to "Agents", admin_agents_path, class: "btn btn-secondary" %>
-  <%= link_to "Matches", admin_matches_path, class: "btn btn-secondary" %>
-  <%= link_to "Audit Logs", admin_audit_logs_path, class: "btn btn-secondary" %>
-</nav>
+      <nav class="admin-nav">
+        <%= link_to "Agents", admin_agents_path, class: "btn btn-secondary" %>
+        <%= link_to "Matches", admin_matches_path, class: "btn btn-secondary" %>
+        <%= link_to "Audit Logs", admin_audit_logs_path, class: "btn btn-secondary" %>
+      </nav>
 
-<%= button_to "Sign Out", admin_logout_path, method: :delete, class: "btn btn-primary" %>
+      <%= button_to "Sign Out", admin_logout_path, method: :delete, class: "btn btn-primary" %>
+    </div>
+  </div>
+</section>

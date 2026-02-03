@@ -1,22 +1,28 @@
-<h1>Audit Logs</h1>
+<section class="section">
+  <div class="container stack">
+    <h1>Audit Logs</h1>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Time</th>
-      <th>Action</th>
-      <th>Actor</th>
-      <th>Auditable</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @audit_logs.each do |log| %>
-      <tr>
-        <td><%= log.created_at %></td>
-        <td><%= log.action %></td>
-        <td><%= log.actor_type %> <%= log.actor_id %></td>
-        <td><%= log.auditable_type %> <%= log.auditable_id %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Actor</th>
+            <th>Auditable</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @audit_logs.each do |log| %>
+            <tr>
+              <td><%= log.created_at %></td>
+              <td><%= log.action %></td>
+              <td><%= log.actor_type %> <%= log.actor_id %></td>
+              <td><%= log.auditable_type %> <%= log.auditable_id %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

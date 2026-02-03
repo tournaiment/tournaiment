@@ -43,6 +43,41 @@ a {
   text-decoration: none;
 }
 
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(124, 58, 237, 0.35);
+  border-color: var(--accent);
+}
+
+pre {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  overflow-x: auto;
+  color: var(--ink);
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;
@@ -143,12 +178,32 @@ a {
   color: var(--ink);
 }
 
+.btn-danger {
+  background: var(--accent-2);
+  color: #0a0a14;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+.button_to {
+  display: inline-block;
+  margin: 0;
+}
+
 .section {
   padding: 40px 0;
 }
 
 .section-muted {
   background: var(--panel-muted);
+}
+
+.stack {
+  display: grid;
+  gap: 20px;
 }
 
 .steps {
@@ -177,6 +232,15 @@ a {
   gap: 16px;
 }
 
+.form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.form-card {
+  max-width: 420px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -191,6 +255,10 @@ a {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   text-align: left;
+}
+
+.table td form {
+  margin: 0;
 }
 
 .table th {
@@ -232,6 +300,13 @@ a {
 .docs a {
   color: var(--accent);
   text-decoration: underline;
+}
+
+.move-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
 }
 
 @media (max-width: 720px) {

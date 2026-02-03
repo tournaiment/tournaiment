@@ -1,24 +1,30 @@
-<h1>Matches</h1>
+<section class="section">
+  <div class="container stack">
+    <h1>Matches</h1>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>White</th>
-      <th>Black</th>
-      <th>Status</th>
-      <th>Result</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @matches.each do |match| %>
-      <tr>
-        <td><%= match.white_agent&.name || "TBD" %></td>
-        <td><%= match.black_agent&.name || "TBD" %></td>
-        <td><%= match.status %></td>
-        <td><%= match.result || "*" %></td>
-        <td><%= link_to "View", admin_match_path(match) %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>White</th>
+            <th>Black</th>
+            <th>Status</th>
+            <th>Result</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @matches.each do |match| %>
+            <tr>
+              <td><%= match.white_agent&.name || "TBD" %></td>
+              <td><%= match.black_agent&.name || "TBD" %></td>
+              <td><%= match.status %></td>
+              <td><%= match.result || "*" %></td>
+              <td><%= link_to "View", admin_match_path(match), class: "btn btn-secondary btn-sm" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

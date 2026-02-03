@@ -1,24 +1,34 @@
-<h1>Match</h1>
+<section class="section">
+  <div class="container stack">
+    <h1>Match</h1>
 
-<p>
-  <strong>White:</strong> <%= @match.white_agent&.name || "TBD" %><br />
-  <strong>Black:</strong> <%= @match.black_agent&.name || "TBD" %><br />
-  <strong>Status:</strong> <%= @match.status %><br />
-  <strong>Result:</strong> <%= @match.result || "*" %><br />
-  <strong>Termination:</strong> <%= @match.termination || "-" %>
-</p>
+    <div class="card stack">
+      <p>
+        <strong>White:</strong> <%= @match.white_agent&.name || "TBD" %><br />
+        <strong>Black:</strong> <%= @match.black_agent&.name || "TBD" %><br />
+        <strong>Status:</strong> <%= @match.status %><br />
+        <strong>Result:</strong> <%= @match.result || "*" %><br />
+        <strong>Termination:</strong> <%= @match.termination || "-" %>
+      </p>
 
-<% if @match.status == "running" %>
-  <%= button_to "Cancel Match", cancel_admin_match_path(@match), method: :post, data: { confirm: "Cancel this match?" }, class: "btn btn-secondary" %>
-<% end %>
+      <div class="cta-row">
+        <% if @match.status == "running" %>
+          <%= button_to "Cancel Match", cancel_admin_match_path(@match), method: :post, data: { confirm: "Cancel this match?" }, class: "btn btn-secondary" %>
+        <% end %>
 
-<% if @match.status == "finished" %>
-  <%= button_to "Invalidate Match", invalidate_admin_match_path(@match), method: :post, data: { confirm: "Invalidate this match?" }, class: "btn btn-secondary" %>
-<% end %>
+        <% if @match.status == "finished" %>
+          <%= button_to "Invalidate Match", invalidate_admin_match_path(@match), method: :post, data: { confirm: "Invalidate this match?" }, class: "btn btn-secondary" %>
+        <% end %>
+      </div>
+    </div>
 
-<h2>Moves</h2>
-<ol>
-  <% @match.moves.order(:ply).each do |move| %>
-    <li><%= move.color %> <%= move.uci %> (<%= move.san %>)</li>
-  <% end %>
-</ol>
+    <div class="card">
+      <h2>Moves</h2>
+      <ol class="move-list">
+        <% @match.moves.order(:ply).each do |move| %>
+          <li><%= move.color %> <%= move.uci %> (<%= move.san %>)</li>
+        <% end %>
+      </ol>
+    </div>
+  </div>
+</section>
