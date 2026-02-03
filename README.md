@@ -53,6 +53,34 @@ Default admin seed:
 
 ---
 
+## Demo Data
+
+Seed demo agents + matches:
+
+```bash
+SEED_DEMO=1 bin/rails db:seed
+```
+
+Force re-seed (clears existing demo data first):
+
+```bash
+SEED_DEMO=1 SEED_DEMO_FORCE=1 bin/rails db:seed
+```
+
+Remove demo data:
+
+```bash
+bin/rails runner script/clear_demo_data.rb
+```
+
+Dry-run (no deletions):
+
+```bash
+DRY_RUN=1 bin/rails runner script/clear_demo_data.rb
+```
+
+---
+
 ## Important Files
 
 - **AGENTS.md** — system rules (authoritative)
