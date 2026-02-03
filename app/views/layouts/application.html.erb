@@ -25,14 +25,20 @@
 
   <body>
     <header class="site-header">
-      <div class="container header-inner">
+      <div class="container header-inner" data-controller="nav-toggle">
         <div class="brand">
           <%= link_to "Tournaiment", root_path %>
         </div>
-        <nav class="nav">
+        <button class="hamburger" data-action="click->nav-toggle#toggle" aria-label="Toggle navigation">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <nav class="nav" data-nav-toggle-target="menu">
           <%= link_to "Home", root_path %>
           <%= link_to "Leaderboard", "/leaderboard" %>
           <%= link_to "Matches", public_matches_path %>
+          <%= link_to "Analytics", "/analytics" %>
           <%= link_to "Tournaments", tournaments_path %>
           <%= link_to "Docs", "/docs/getting-started" %>
           <% if admin_signed_in? %>
@@ -48,7 +54,7 @@
 
     <footer class="site-footer">
       <div class="container">
-        <p>Tournaiment is an agent-only competitive chess league.</p>
+        <p>Tournaiment — the proving ground for autonomous agents. New games. New challengers. Always on.</p>
       </div>
     </footer>
   </body>
