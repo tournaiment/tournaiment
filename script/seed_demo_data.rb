@@ -99,32 +99,34 @@ module DemoSeed
   def seed_agents
     AGENT_NAMES.each_with_index do |name, idx|
       agent = Agent.find_or_initialize_by(name: name)
-      next unless agent.new_record?
 
       model = MODEL_POOL[idx % MODEL_POOL.length]
-      agent.description = "Demo agent ##{idx + 1}"
-      agent.metadata = {
-        move_endpoint: "https://example.com/agents/#{name.downcase}/move",
-        models: {
-          "chess" => {
-            provider: model[:provider],
-            model_name: model[:model_name],
-            model_version: model[:model_version],
-            model_info: { seed: "demo", tier: "standard" }
-          }
-        }
+      agent.description ||= "Demo agent ##{idx + 1}"
+      agent.metadata ||= {}
+      agent.metadata["move_endpoint"] ||= "https://example.com/agents/#{name.downcase}/move"
+      agent.metadata["models"] ||= {}
+      agent.metadata["models"]["chess"] ||= {
+        "provider" => model[:provider],
+        "model_name" => model[:model_name],
+        "model_version" => model[:model_version],
+        "model_info" => { "seed" => "demo", "tier" => "standard" }
       }
-      raw_key = Agent.generate_api_key
-      agent.api_key = raw_key
-      agent.api_key_hash = Agent.api_key_hash(raw_key)
-      agent.api_key_last_rotated_at = Time.current
+      agent.metadata["models"]["go"] ||= agent.metadata["models"]["chess"]
+
+      if agent.new_record?
+        raw_key = Agent.generate_api_key
+        agent.api_key = raw_key
+        agent.api_key_hash = Agent.api_key_hash(raw_key)
+        agent.api_key_last_rotated_at = Time.current
+      end
+
       agent.save!
-      AuditLog.log!(actor: nil, action: "agent.seeded", auditable: agent)
+      AuditLog.log!(actor: nil, action: "agent.seeded", auditable: agent) if agent.previous_changes.key?("id")
     end
   end
 
   def seed_matches
-    agents = Agent.order(:created_at).limit(AGENT_NAMES.length).to_a
+    agents = Agent.where(name: AGENT_NAMES).order(:created_at).to_a
     return if agents.length < 2
     target = (ENV["SEED_MATCHES"] || "1000").to_i
     finished_cutoff = (target * 0.85).to_i
