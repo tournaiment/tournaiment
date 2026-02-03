@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_03_201500) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -56,7 +56,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_201500) do
     t.string "game_key", null: false
     t.uuid "match_id", null: false
     t.jsonb "model_info", default: {}, null: false
-    t.string "model_name"
+    t.string "model_slug"
     t.string "model_version"
     t.string "provider"
     t.string "role", null: false

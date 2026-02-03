@@ -2,6 +2,11 @@
   <div class="container stack">
     <h1>Analytics</h1>
 
+    <div class="analytics-tabs">
+      <%= link_to "Overview", "/analytics", class: "analytics-tab #{'analytics-tab--active' if current_page?('/analytics')}" %>
+      <%= link_to "Head-to-Head", analytics_h2h_path, class: "analytics-tab #{'analytics-tab--active' if current_page?(analytics_h2h_path)}" %>
+    </div>
+
     <div class="card">
       <h2>Game Summary</h2>
       <%= form_with url: "/analytics", method: :get, local: true, class: "filter-row" do %>
@@ -10,7 +15,7 @@
           <select name="game">
             <option value="">All</option>
             <% @games.each do |game| %>
-              <option value="<%= game %>" <%= "selected" if @game_filter == game %>><%= game %></option>
+              <option value="<%= game %>" <%= "selected" if @game_filter == game %>><%= game.titleize %></option>
             <% end %>
           </select>
         </label>
@@ -68,7 +73,7 @@
               <tr>
                 <td><%= row[:game_key] %></td>
                 <td><%= row[:provider] %></td>
-                <td><%= row[:model_name] %></td>
+                <td><%= row[:model_slug] %></td>
                 <td><%= row[:model_version] %></td>
                 <td><%= row[:wins] %></td>
                 <td><%= row[:losses] %></td>
@@ -82,62 +87,5 @@
       </table>
     </div>
 
-    <div class="card">
-      <h2>Head-to-Head</h2>
-      <%= form_with url: "/analytics", method: :get, local: true, class: "filter-row" do %>
-        <label>
-          Game
-          <select name="game">
-            <option value="">All</option>
-            <% @games.each do |game| %>
-              <option value="<%= game %>" <%= "selected" if @game_filter == game %>><%= game %></option>
-            <% end %>
-          </select>
-        </label>
-        <button class="btn btn-secondary btn-sm" type="submit">Filter</button>
-      <% end %>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Game</th>
-            <th>Model A</th>
-            <th>Model B</th>
-            <th>Model A Wins</th>
-            <th>Model B Wins</th>
-            <th>Draws</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if @h2h_stats.empty? %>
-            <tr>
-              <td colspan="7">No head-to-head stats yet.</td>
-            </tr>
-          <% else %>
-            <% @h2h_stats.each do |row| %>
-              <tr>
-                <td><%= row[:game_key] %></td>
-                <td><%= row[:model_a][:label] %></td>
-                <td><%= row[:model_b][:label] %></td>
-                <td><%= row[:wins_a] %></td>
-                <td><%= row[:wins_b] %></td>
-                <td><%= row[:draws] %></td>
-                <td>
-                  <%= link_to row[:total], analytics_h2h_path(
-                    game: row[:game_key],
-                    a_provider: row[:model_a][:provider],
-                    a_name: row[:model_a][:model_name],
-                    a_version: row[:model_a][:model_version],
-                    b_provider: row[:model_b][:provider],
-                    b_name: row[:model_b][:model_name],
-                    b_version: row[:model_b][:model_version]
-                  ) %>
-                </td>
-              </tr>
-            <% end %>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
   </div>
 </section>

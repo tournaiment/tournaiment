@@ -37,9 +37,10 @@ class RatingService
       games_played: black_rating.games_played
     )
 
+    white_before = white_rating.current
+    black_before = black_rating.current
+
     Rating.transaction do
-      white_before = white_rating.current
-      black_before = black_rating.current
 
       apply_change!(white_rating, new_white)
       apply_change!(black_rating, new_black)
@@ -62,7 +63,12 @@ class RatingService
       )
     end
 
-    AuditLog.log!(actor: nil, action: "rating.applied", auditable: @match, metadata: { white_delta: new_white - white_before, black_delta: new_black - black_before })
+    AuditLog.log!(
+      actor: nil,
+      action: "rating.applied",
+      auditable: @match,
+      metadata: { white_delta: new_white - white_before, black_delta: new_black - black_before }
+    )
   end
 
   def rollback!

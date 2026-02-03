@@ -123,7 +123,7 @@ class Match < ApplicationRecord
       game_key: game_key,
       role: role,
       provider: model_payload["provider"],
-      model_name: model_payload["model_name"],
+      model_slug: model_payload["model_name"],
       model_version: model_payload["model_version"],
       model_info: model_payload.fetch("model_info", {})
     )

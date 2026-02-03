@@ -21,12 +21,12 @@ class AnalyticsController < ApplicationController
       [
         record.game_key,
         record.provider.presence || "unknown",
-        record.model_name.presence || "unknown",
+        record.model_slug.presence || "unknown",
         record.model_version.presence || "unknown"
       ]
     end
 
-    @model_stats = grouped.map do |(game_key, provider, model_name, model_version), entries|
+    @model_stats = grouped.map do |(game_key, provider, model_slug, model_version), entries|
       stats = { wins: 0, losses: 0, draws: 0, total: 0 }
 
       entries.each do |entry|
@@ -53,7 +53,7 @@ class AnalyticsController < ApplicationController
       {
         game_key: game_key,
         provider: provider,
-        model_name: model_name,
+        model_slug: model_slug,
         model_version: model_version,
         wins: stats[:wins],
         losses: stats[:losses],
@@ -64,116 +64,86 @@ class AnalyticsController < ApplicationController
       }
     end.sort_by { |row| [-row[:win_rate], -row[:total]] }
 
-    h2h_filter_matches = finished_matches
-    @h2h_stats = build_h2h_stats(h2h_filter_matches)
     @games = GameRegistry.supported_keys
   end
 
   def h2h
-    @game_key = params[:game].presence
-    a_raw = extract_model_params("a")
-    b_raw = extract_model_params("b")
+    @game_key = params[:game].presence || GameRegistry.supported_keys.first
 
-    raise ActiveRecord::RecordNotFound if @game_key.blank? || a_raw[:provider].blank? || a_raw[:model_name].blank? || a_raw[:model_version].blank?
-    raise ActiveRecord::RecordNotFound if b_raw[:provider].blank? || b_raw[:model_name].blank? || b_raw[:model_version].blank?
+    @model_options = MatchAgentModel.where(game_key: @game_key)
+      .distinct
+      .order(:provider, :model_slug, :model_version)
+      .pluck(:provider, :model_slug, :model_version)
+      .map { |provider, model_slug, model_version| build_model_option(provider, model_slug, model_version) }
 
-    a = normalize_model_params(a_raw)
-    b = normalize_model_params(b_raw)
+    @comparison_requested = params[:a_model].present?
 
-    @model_a = a.merge(label: model_label(a_raw))
-    @model_b = b.merge(label: model_label(b_raw))
+    if @model_options.any?
+      a_raw = parse_model_param(params[:a_model])
+      b_raw = parse_model_param(params[:b_model])
 
-    matches = Match.where(status: "finished", game_key: @game_key)
-      .includes(:match_agent_models)
+      a_raw ||= @model_options.first || default_model_option
+      b_raw ||= @model_options.second || @model_options.first || default_model_option
 
-    @h2h_summary = summarize_h2h(matches, @model_a, @model_b)
-    @chart_a = rating_series(@model_a, @game_key)
-    @chart_b = rating_series(@model_b, @game_key)
+      @model_a = a_raw.merge(label: model_label(a_raw))
+      @model_b = b_raw.merge(label: model_label(b_raw))
+    end
+
+    if @comparison_requested && @model_a && @model_b
+      matches = Match.where(status: "finished", game_key: @game_key)
+        .includes(:match_agent_models)
+
+      @h2h_summary = summarize_h2h(matches, @model_a, @model_b)
+      @chart_a = rating_series(@model_a, @game_key)
+      @chart_b = rating_series(@model_b, @game_key)
+    else
+      @h2h_summary = { wins_a: 0, wins_b: 0, draws: 0, total: 0 }
+      @chart_a = []
+      @chart_b = []
+    end
+
+    @games = GameRegistry.supported_keys
   end
 
   private
 
-  def build_h2h_stats(matches)
-    table = Hash.new { |hash, key| hash[key] = { wins_a: 0, wins_b: 0, draws: 0, total: 0 } }
-
-    matches.includes(:match_agent_models).find_each do |match|
-      entries = match.match_agent_models.select { |entry| entry.game_key == match.game_key }
-      white = entries.find { |entry| entry.role == "white" }
-      black = entries.find { |entry| entry.role == "black" }
-      next unless white && black
-
-      white_key = model_key(white)
-      black_key = model_key(black)
-      a, b = [white_key, black_key].sort_by { |item| item[:label] }
-
-      key = [match.game_key, a, b]
-      stats = table[key]
-      stats[:total] += 1
-
-      case match.result
-      when "1-0"
-        winner_key = white_key
-      when "0-1"
-        winner_key = black_key
-      when "1/2-1/2"
-        stats[:draws] += 1
-        next
-      else
-        stats[:total] -= 1
-        next
-      end
-
-      if winner_key == a
-        stats[:wins_a] += 1
-      else
-        stats[:wins_b] += 1
-      end
-    end
-
-    table.map do |(game_key, a, b), stats|
-      {
-        game_key: game_key,
-        model_a: a,
-        model_b: b,
-        wins_a: stats[:wins_a],
-        wins_b: stats[:wins_b],
-        draws: stats[:draws],
-        total: stats[:total]
-      }
-    end.sort_by { |row| -row[:total] }
+  def build_model_option(provider, model_slug, model_version)
+    {
+      provider: provider.presence || "unknown",
+      model_slug: model_slug.presence || "unknown",
+      model_version: model_version.presence || "unknown",
+      label: model_label(provider: provider, model_slug: model_slug, model_version: model_version),
+      value: [provider.presence || "unknown", model_slug.presence || "unknown", model_version.presence || "unknown"].join("|")
+    }
   end
 
-  def model_key(entry)
-    provider = entry.provider.presence || "unknown"
-    model_name = entry.model_name.presence || "unknown"
-    model_version = entry.model_version.presence || "unknown"
+  def parse_model_param(value)
+    return nil if value.blank?
+
+    provider, model_slug, model_version = value.split("|", 3)
     {
       provider: provider,
-      model_name: model_name,
-      model_version: model_version,
-      label: "#{provider} #{model_name} #{model_version}"
+      model_slug: model_slug,
+      model_version: model_version
     }
   end
 
-  def extract_model_params(prefix)
-    {
-      provider: params["#{prefix}_provider"],
-      model_name: params["#{prefix}_name"],
-      model_version: params["#{prefix}_version"]
-    }
-  end
-
-  def normalize_model_params(model)
-    model.transform_values do |value|
-      value == "unknown" ? nil : value
-    end
+  def default_model_option
+    { provider: "unknown", model_slug: "unknown", model_version: "unknown" }
   end
 
   def model_label(model)
     provider = model[:provider].presence || "unknown"
-    model_name = model[:model_name].presence || "unknown"
+    model_slug = model[:model_slug].presence || "unknown"
     model_version = model[:model_version].presence || "unknown"
-    "#{provider} #{model_name} #{model_version}"
+    label_from(provider, model_slug, model_version)
+  end
+
+  def label_from(provider, model_slug, model_version)
+    provider = provider.presence || "unknown"
+    model_slug = model_slug.presence || "unknown"
+    model_version = model_version.presence || "unknown"
+    "#{provider} #{model_slug} #{model_version}"
   end
 
   def summarize_h2h(matches, model_a, model_b)
@@ -185,18 +155,18 @@ class AnalyticsController < ApplicationController
       black = entries.find { |entry| entry.role == "black" }
       next unless white && black
 
-      white_key = model_key(white)
-      black_key = model_key(black)
-      pair = [white_key[:label], black_key[:label]].sort
+      white_key = label_from(white.provider, white.model_slug, white.model_version)
+      black_key = label_from(black.provider, black.model_slug, black.model_version)
+      pair = [white_key, black_key].sort
       target = [model_a[:label], model_b[:label]].sort
       next unless pair == target
 
       summary[:total] += 1
       case match.result
       when "1-0"
-        white_key[:label] == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        white_key == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "0-1"
-        black_key[:label] == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        black_key == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "1/2-1/2"
         summary[:draws] += 1
       else
@@ -211,26 +181,11 @@ class AnalyticsController < ApplicationController
     changes = RatingChange.joins("INNER JOIN matches ON matches.id = rating_changes.match_id")
       .joins("INNER JOIN match_agent_models ON match_agent_models.match_id = rating_changes.match_id AND match_agent_models.agent_id = rating_changes.agent_id AND match_agent_models.game_key = matches.game_key")
       .where(matches: { status: "finished", game_key: game_key })
-
-    changes = if model[:provider].nil?
-      changes.where(match_agent_models: { provider: nil })
-    else
-      changes.where(match_agent_models: { provider: model[:provider] })
-    end
-
-    changes = if model[:model_name].nil?
-      changes.where(match_agent_models: { model_name: nil })
-    else
-      changes.where(match_agent_models: { model_name: model[:model_name] })
-    end
-
-    changes = if model[:model_version].nil?
-      changes.where(match_agent_models: { model_version: nil })
-    else
-      changes.where(match_agent_models: { model_version: model[:model_version] })
-    end
-
-    changes = changes
+      .where(match_agent_models: {
+        provider: model[:provider] == "unknown" ? nil : model[:provider],
+        model_slug: model[:model_slug] == "unknown" ? nil : model[:model_slug],
+        model_version: model[:model_version] == "unknown" ? nil : model[:model_version]
+      })
       .order("rating_changes.created_at ASC")
       .pluck("rating_changes.created_at", "rating_changes.after_rating")
 

@@ -81,9 +81,10 @@ module DemoSeed
 
   def run!
     if ENV["SEED_DEMO_FORCE"] == "1"
-      Match.delete_all
+      MatchAgentModel.delete_all
       Move.delete_all
       RatingChange.delete_all
+      Match.delete_all
       Rating.delete_all
       TournamentEntry.delete_all
       Tournament.delete_all
