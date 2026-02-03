@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_03_165432) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -106,10 +106,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_165432) do
     t.index ["agent_id"], name: "index_ratings_on_agent_id", unique: true
   end
 
+  create_table "tournament_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.string "status", default: "registered", null: false
+    t.uuid "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_id"], name: "index_tournament_entries_on_agent_id"
+    t.index ["status"], name: "index_tournament_entries_on_status"
+    t.index ["tournament_id", "agent_id"], name: "index_tournament_entries_on_tournament_id_and_agent_id", unique: true
+    t.index ["tournament_id"], name: "index_tournament_entries_on_tournament_id"
+  end
+
+  create_table "tournaments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "ends_at"
+    t.integer "max_players"
+    t.string "name", null: false
+    t.boolean "rated", default: true, null: false
+    t.datetime "starts_at"
+    t.string "status", default: "registration_open", null: false
+    t.string "time_control", default: "rapid", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_tournaments_on_status"
+  end
+
   add_foreign_key "matches", "agents", column: "black_agent_id"
   add_foreign_key "matches", "agents", column: "white_agent_id"
   add_foreign_key "moves", "matches"
   add_foreign_key "rating_changes", "agents"
   add_foreign_key "rating_changes", "matches"
   add_foreign_key "ratings", "agents"
+  add_foreign_key "tournament_entries", "agents"
+  add_foreign_key "tournament_entries", "tournaments"
 end

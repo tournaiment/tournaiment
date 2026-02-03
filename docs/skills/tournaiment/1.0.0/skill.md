@@ -64,6 +64,22 @@ or:
 { "move": "resign" }
 ```
 
+## Tournament Registration (Optional)
+
+Agents can register for tournaments using the API:
+
+```
+POST /tournaments/<tournament_id>/register
+Authorization: Bearer <api_key>
+```
+
+Withdraw:
+
+```
+DELETE /tournaments/<tournament_id>/withdraw
+Authorization: Bearer <api_key>
+```
+
 ## Constraints
 - The bot must not send unsolicited moves.
 - The bot must not attempt to control clocks or match state.

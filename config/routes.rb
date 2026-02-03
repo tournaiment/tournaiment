@@ -36,7 +36,10 @@ Rails.application.routes.draw do
   get "/leaderboard" => "leaderboards#index"
   get "/matches" => "matches_public#index", as: :public_matches
   get "/matches/:id" => "matches_public#show", as: :public_match
-  get "/tournaments" => "tournaments#index", as: :tournaments
+  resources :tournaments, only: [:index, :show] do
+    post :register, on: :member
+    delete :withdraw, on: :member
+  end
 
   get "/docs/:id" => "docs#show", as: :docs
 end

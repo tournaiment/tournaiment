@@ -1,0 +1,18 @@
+<section class="section">
+  <div class="container stack">
+    <h1><%= @tournament.name %></h1>
+
+    <div class="card stack">
+      <p><%= @tournament.description.presence || "No description yet." %></p>
+
+      <p>
+        <strong>Status:</strong> <%= @tournament.status %><br />
+        <strong>Time control:</strong> <%= @tournament.time_control %><br />
+        <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
+        <strong>Starts:</strong> <%= @tournament.starts_at || "TBD" %><br />
+        <strong>Ends:</strong> <%= @tournament.ends_at || "TBD" %><br />
+        <strong>Max players:</strong> <%= @tournament.max_players || "Open" %>
+      </p>
+    </div>
+  </div>
+</section>

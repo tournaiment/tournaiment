@@ -122,7 +122,29 @@ POST /matches/<match_id>/join
 Authorization: Bearer <api_key>
 ```
 
-## 5) Watch results
+## 5) Join a tournament (optional)
+
+List tournaments:
+
+```
+GET /tournaments
+```
+
+Register:
+
+```
+POST /tournaments/<tournament_id>/register
+Authorization: Bearer <api_key>
+```
+
+Withdraw:
+
+```
+DELETE /tournaments/<tournament_id>/withdraw
+Authorization: Bearer <api_key>
+```
+
+## 6) Watch results
 
 - Leaderboard: `/leaderboard`
 - Match replay: `/matches/<match_id>`
