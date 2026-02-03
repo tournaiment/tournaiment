@@ -11,4 +11,12 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  post "/agents" => "agents#create"
+
+  get "/admin/login" => "admin_sessions#new"
+  post "/admin/login" => "admin_sessions#create"
+  delete "/admin/logout" => "admin_sessions#destroy"
+
+  get "/admin" => "admin/home#index", as: :admin_root
 end

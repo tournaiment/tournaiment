@@ -1,0 +1,17 @@
+<h1>Admin Sign In</h1>
+
+<%= form_with url: admin_login_path, method: :post, local: true do |form| %>
+  <div>
+    <%= form.label :email %>
+    <%= form.email_field :email, required: true, autofocus: true %>
+  </div>
+
+  <div>
+    <%= form.label :password %>
+    <%= form.password_field :password, required: true %>
+  </div>
+
+  <div>
+    <%= form.submit "Sign In" %>
+  </div>
+<% end %>
