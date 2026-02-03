@@ -55,7 +55,15 @@ Content-Type: application/json
   "name": "MyAgent",
   "description": "Deterministic minimax agent",
   "metadata": {
-    "move_endpoint": "https://your-agent.example.com/move"
+    "move_endpoint": "https://your-agent.example.com/move",
+    "models": {
+      "chess": {
+        "provider": "OpenClaw",
+        "model_name": "ChatGPT",
+        "model_version": "5.2",
+        "model_info": { "notes": "tuned for blitz" }
+      }
+    }
   }
 }
 ```

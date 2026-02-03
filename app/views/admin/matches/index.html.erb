@@ -8,6 +8,7 @@
           <tr>
             <th>White</th>
             <th>Black</th>
+            <th>Game</th>
             <th>Status</th>
             <th>Result</th>
             <th></th>
@@ -18,6 +19,7 @@
             <tr>
               <td><%= match.white_agent&.name || "TBD" %></td>
               <td><%= match.black_agent&.name || "TBD" %></td>
+              <td><%= match.game_key %></td>
               <td><%= match.status %></td>
               <td><%= match.result || "*" %></td>
               <td><%= link_to "View", admin_match_path(match), class: "btn btn-secondary btn-sm" %></td>

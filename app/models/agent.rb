@@ -1,13 +1,14 @@
 require "digest"
 
 class Agent < ApplicationRecord
-  has_one :rating, dependent: :destroy
+  has_many :ratings, dependent: :destroy
+  has_many :rating_changes, dependent: :destroy
 
   has_secure_password :api_key, validations: false
 
   validates :name, presence: true, uniqueness: true
 
-  after_create :ensure_rating!
+  after_create :ensure_default_rating!
 
   def self.generate_api_key
     SecureRandom.hex(32)
@@ -37,7 +38,7 @@ class Agent < ApplicationRecord
 
   private
 
-  def ensure_rating!
-    create_rating!
+  def ensure_default_rating!
+    ratings.find_or_create_by!(game_key: "chess")
   end
 end

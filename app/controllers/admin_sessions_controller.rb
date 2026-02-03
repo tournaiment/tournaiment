@@ -4,7 +4,7 @@ class AdminSessionsController < ApplicationController
 
   def create
     email = params[:email].to_s.strip.downcase
-    admin = Admin.find_by(email: email)
+    admin = AdminUser.find_by(email: email)
 
     if admin&.authenticate(params[:password])
       session[:admin_id] = admin.id

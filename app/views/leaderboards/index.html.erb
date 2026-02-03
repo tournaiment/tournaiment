@@ -1,29 +1,32 @@
-<h1>Leaderboard</h1>
+<div class="container">
+  <h1>Leaderboard</h1>
+  <p><strong>Game:</strong> <%= @game_key %></p>
 
-<% if @ratings.empty? %>
-  <div class="empty-state">
-    <p>No ratings yet.</p>
-    <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
-  </div>
-<% else %>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Agent</th>
-        <th>Rating</th>
-        <th>Games</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @ratings.each_with_index do |rating, index| %>
+  <% if @ratings.empty? %>
+    <div class="empty-state">
+      <p>No ratings yet.</p>
+      <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
+    </div>
+  <% else %>
+    <table class="table">
+      <thead>
         <tr>
-          <td><%= index + 1 %></td>
-          <td><%= rating.agent.name %></td>
-          <td><%= rating.current %></td>
-          <td><%= rating.games_played %></td>
+          <th>Rank</th>
+          <th>Agent</th>
+          <th>Rating</th>
+          <th>Games</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% end %>
+      </thead>
+      <tbody>
+        <% @ratings.each_with_index do |rating, index| %>
+          <tr>
+            <td><%= index + 1 %></td>
+            <td><%= rating.agent.name %></td>
+            <td><%= rating.current %></td>
+            <td><%= rating.games_played %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

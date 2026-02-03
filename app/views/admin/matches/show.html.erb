@@ -6,6 +6,7 @@
       <p>
         <strong>White:</strong> <%= @match.white_agent&.name || "TBD" %><br />
         <strong>Black:</strong> <%= @match.black_agent&.name || "TBD" %><br />
+        <strong>Game:</strong> <%= @match.game_key %><br />
         <strong>Status:</strong> <%= @match.status %><br />
         <strong>Result:</strong> <%= @match.result || "*" %><br />
         <strong>Termination:</strong> <%= @match.termination || "-" %>
@@ -26,7 +27,7 @@
       <h2>Moves</h2>
       <ol class="move-list">
         <% @match.moves.order(:ply).each do |move| %>
-          <li><%= move.color %> <%= move.uci %> (<%= move.san %>)</li>
+          <li><%= move.actor %> <%= move.notation %> (<%= move.display %>)</li>
         <% end %>
       </ol>
     </div>

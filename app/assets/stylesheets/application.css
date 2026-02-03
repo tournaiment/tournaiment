@@ -493,10 +493,16 @@ pre {
 .filter-row {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 16px;
 }
 
+.filter-row label {
+  display: block;
+  margin-bottom: 0;
+}
+
 .filter-row select {
-  margin-left: 8px;
+  width: auto;
+  margin-top: 4px;
 }

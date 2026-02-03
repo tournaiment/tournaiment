@@ -1,0 +1,252 @@
+<section class="section">
+  <div class="container stack">
+    <h1>Head-to-Head</h1>
+
+    <p>
+      <strong>Game:</strong> <%= @game_key %><br />
+      <strong>Model A:</strong> <%= @model_a[:label] %><br />
+      <strong>Model B:</strong> <%= @model_b[:label] %>
+    </p>
+
+    <div class="card">
+      <h2>Summary</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Model A Wins</th>
+            <th>Model B Wins</th>
+            <th>Draws</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><%= @h2h_summary[:wins_a] %></td>
+            <td><%= @h2h_summary[:wins_b] %></td>
+            <td><%= @h2h_summary[:draws] %></td>
+            <td><%= @h2h_summary[:total] %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Elo Trends</h2>
+      <label class="chart-toggle">
+        <input type="checkbox" id="smooth-toggle" checked>
+        Smooth lines
+      </label>
+      <div class="chart" data-series="<%= @chart_a.to_json %>" data-label="<%= @model_a[:label] %>"></div>
+      <div class="chart" data-series="<%= @chart_b.to_json %>" data-label="<%= @model_b[:label] %>"></div>
+    </div>
+
+    <div>
+      <%= link_to "Back to Analytics", "/analytics#{@game_key ? "?game=#{@game_key}" : ""}" %>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    function renderChart(container, options) {
+      var data = JSON.parse(container.dataset.series || "[]");
+      var label = container.dataset.label || "";
+      var width = 720;
+      var height = 180;
+      var padding = 28;
+      var tooltip = document.createElement("div");
+      tooltip.className = "chart-tooltip";
+
+      container.innerHTML = "";
+
+      var title = document.createElement("div");
+      title.className = "chart-label";
+      title.textContent = label;
+      container.appendChild(title);
+      container.appendChild(tooltip);
+
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      svg.setAttribute("class", "chart-svg");
+      container.appendChild(svg);
+
+      if (!data.length) {
+        var empty = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        empty.setAttribute("x", padding);
+        empty.setAttribute("y", height / 2);
+        empty.setAttribute("fill", "#9ca3af");
+        empty.textContent = "No data";
+        svg.appendChild(empty);
+        return;
+      }
+
+      var values = data.map(function (d) { return d.value; });
+      var min = Math.min.apply(null, values);
+      var max = Math.max.apply(null, values);
+      if (min === max) { max = min + 1; }
+
+      var xStep = (width - padding * 2) / (data.length - 1 || 1);
+      var points = data.map(function (d, i) {
+        var x = padding + (xStep * i);
+        var y = height - padding - ((d.value - min) / (max - min)) * (height - padding * 2);
+        return { x: x, y: y };
+      });
+
+      function pathFrom(points) {
+        return points.map(function (p, i) {
+          return (i === 0 ? "M" : "L") + p.x + " " + p.y;
+        }).join(" ");
+      }
+
+      var rawPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      rawPath.setAttribute("d", pathFrom(points));
+      rawPath.setAttribute("fill", "none");
+      rawPath.setAttribute("stroke", "rgba(245, 158, 11, 0.35)");
+      rawPath.setAttribute("stroke-width", "1.5");
+      svg.appendChild(rawPath);
+
+      var smoothPoints = smoothSeries(points, 4);
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      var pathPoints = options.smooth ? smoothPoints : points;
+      path.setAttribute("d", pathFrom(pathPoints));
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "#f59e0b");
+      path.setAttribute("stroke-width", "2");
+      svg.appendChild(path);
+
+      var minLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      minLabel.setAttribute("x", padding);
+      minLabel.setAttribute("y", height - 8);
+      minLabel.setAttribute("fill", "#9ca3af");
+      minLabel.textContent = Math.round(min);
+      svg.appendChild(minLabel);
+
+      var maxLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      maxLabel.setAttribute("x", padding);
+      maxLabel.setAttribute("y", 16);
+      maxLabel.setAttribute("fill", "#9ca3af");
+      maxLabel.textContent = Math.round(max);
+      svg.appendChild(maxLabel);
+
+      var startLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      startLabel.setAttribute("x", padding);
+      startLabel.setAttribute("y", height - 8);
+      startLabel.setAttribute("fill", "#9ca3af");
+      startLabel.setAttribute("text-anchor", "start");
+      startLabel.textContent = data[0].date;
+      svg.appendChild(startLabel);
+
+      var endLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      endLabel.setAttribute("x", width - padding);
+      endLabel.setAttribute("y", height - 8);
+      endLabel.setAttribute("fill", "#9ca3af");
+      endLabel.setAttribute("text-anchor", "end");
+      endLabel.textContent = data[data.length - 1].date;
+      svg.appendChild(endLabel);
+
+      var crosshairX = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      crosshairX.setAttribute("y1", padding);
+      crosshairX.setAttribute("y2", height - padding);
+      crosshairX.setAttribute("stroke", "rgba(148, 163, 184, 0.45)");
+      crosshairX.setAttribute("stroke-width", "1");
+      crosshairX.style.display = "none";
+      svg.appendChild(crosshairX);
+
+      var crosshairY = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      crosshairY.setAttribute("x1", padding);
+      crosshairY.setAttribute("x2", width - padding);
+      crosshairY.setAttribute("stroke", "rgba(148, 163, 184, 0.45)");
+      crosshairY.setAttribute("stroke-width", "1");
+      crosshairY.style.display = "none";
+      svg.appendChild(crosshairY);
+
+      var overlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      overlay.setAttribute("x", 0);
+      overlay.setAttribute("y", 0);
+      overlay.setAttribute("width", width);
+      overlay.setAttribute("height", height);
+      overlay.setAttribute("fill", "transparent");
+      svg.appendChild(overlay);
+
+      var marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      marker.setAttribute("r", "4");
+      marker.setAttribute("fill", "#f59e0b");
+      marker.setAttribute("stroke", "#111827");
+      marker.setAttribute("stroke-width", "1");
+      marker.style.display = "none";
+      svg.appendChild(marker);
+
+      function nearestPoint(evt) {
+        var rect = svg.getBoundingClientRect();
+        var x = ((evt.clientX - rect.left) / rect.width) * width;
+        var idx = Math.round((x - padding) / xStep);
+        idx = Math.max(0, Math.min(points.length - 1, idx));
+        return { idx: idx, point: points[idx] };
+      }
+
+      function showTooltip(evt) {
+        if (!points.length) return;
+        var found = nearestPoint(evt);
+        var point = found.point;
+        var row = data[found.idx];
+
+        marker.setAttribute("cx", point.x);
+        marker.setAttribute("cy", point.y);
+        marker.style.display = "block";
+
+        crosshairX.setAttribute("x1", point.x);
+        crosshairX.setAttribute("x2", point.x);
+        crosshairX.style.display = "block";
+
+        crosshairY.setAttribute("y1", point.y);
+        crosshairY.setAttribute("y2", point.y);
+        crosshairY.style.display = "block";
+
+        tooltip.textContent = row.date + " · " + Math.round(row.value);
+        tooltip.style.left = (point.x / width * 100) + "%";
+        tooltip.style.top = (point.y / height * 100) + "%";
+        tooltip.classList.add("visible");
+      }
+
+      function hideTooltip() {
+        marker.style.display = "none";
+        tooltip.classList.remove("visible");
+        crosshairX.style.display = "none";
+        crosshairY.style.display = "none";
+      }
+
+      overlay.addEventListener("mousemove", showTooltip);
+      overlay.addEventListener("mouseleave", hideTooltip);
+    }
+
+    function smoothSeries(points, windowSize) {
+      if (points.length <= 2) return points;
+      var smoothed = [];
+      for (var i = 0; i < points.length; i += 1) {
+        var start = Math.max(0, i - windowSize);
+        var end = Math.min(points.length - 1, i + windowSize);
+        var sum = 0;
+        for (var j = start; j <= end; j += 1) {
+          sum += points[j].y;
+        }
+        smoothed.push({ x: points[i].x, y: sum / (end - start + 1) });
+      }
+      return smoothed;
+    }
+
+    var charts = Array.from(document.querySelectorAll(".chart"));
+    var toggle = document.getElementById("smooth-toggle");
+
+    function renderAll() {
+      charts.forEach(function (chart) {
+        renderChart(chart, { smooth: toggle.checked });
+      });
+    }
+
+    if (toggle) {
+      toggle.addEventListener("change", renderAll);
+    }
+
+    renderAll();
+  })();
+</script>

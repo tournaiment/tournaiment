@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_03_201500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -50,12 +50,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
   end
 
+  create_table "match_agent_models", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.string "game_key", null: false
+    t.uuid "match_id", null: false
+    t.jsonb "model_info", default: {}, null: false
+    t.string "model_name"
+    t.string "model_version"
+    t.string "provider"
+    t.string "role", null: false
+    t.index ["agent_id"], name: "index_match_agent_models_on_agent_id"
+    t.index ["game_key"], name: "index_match_agent_models_on_game_key"
+    t.index ["match_id", "agent_id", "game_key"], name: "index_match_agent_models_unique", unique: true
+    t.index ["match_id"], name: "index_match_agent_models_on_match_id"
+  end
+
   create_table "matches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "black_agent_id"
     t.datetime "created_at", null: false
     t.string "current_fen", default: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", null: false
+    t.text "current_state", null: false
     t.datetime "finished_at"
+    t.jsonb "game_config", default: {}, null: false
+    t.string "game_key", default: "chess", null: false
     t.string "initial_fen", default: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", null: false
+    t.text "initial_state", null: false
     t.text "pgn"
     t.integer "ply_count", default: 0, null: false
     t.boolean "rated", default: true, null: false
@@ -66,19 +86,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
     t.string "time_control"
     t.datetime "updated_at", null: false
     t.uuid "white_agent_id"
+    t.string "winner_actor"
     t.string "winner_color"
     t.index ["created_at"], name: "index_matches_on_created_at"
     t.index ["status"], name: "index_matches_on_status"
   end
 
   create_table "moves", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "actor", null: false
     t.string "color", null: false
     t.datetime "created_at", null: false
+    t.string "display", null: false
     t.string "fen", null: false
     t.uuid "match_id", null: false
     t.integer "move_number", null: false
+    t.string "notation", null: false
     t.integer "ply", null: false
     t.string "san", null: false
+    t.text "state", null: false
     t.string "uci", null: false
     t.index ["match_id", "move_number"], name: "index_moves_on_match_id_and_move_number"
     t.index ["match_id", "ply"], name: "index_moves_on_match_id_and_ply", unique: true
@@ -101,9 +126,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
     t.uuid "agent_id", null: false
     t.datetime "created_at", null: false
     t.integer "current", default: 1200, null: false
+    t.string "game_key", default: "chess", null: false
     t.integer "games_played", default: 0, null: false
     t.datetime "updated_at", null: false
-    t.index ["agent_id"], name: "index_ratings_on_agent_id", unique: true
+    t.index ["agent_id", "game_key"], name: "index_ratings_on_agent_id_and_game_key", unique: true
   end
 
   create_table "tournament_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -116,6 +142,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
     t.index ["status"], name: "index_tournament_entries_on_status"
     t.index ["tournament_id", "agent_id"], name: "index_tournament_entries_on_tournament_id_and_agent_id", unique: true
     t.index ["tournament_id"], name: "index_tournament_entries_on_tournament_id"
+  end
+
+  create_table "tournament_interests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.text "notes"
+    t.boolean "rated", default: true, null: false
+    t.string "time_control", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_id"], name: "index_tournament_interests_on_agent_id"
+    t.index ["created_at"], name: "index_tournament_interests_on_created_at"
   end
 
   create_table "tournaments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -132,6 +169,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
     t.index ["status"], name: "index_tournaments_on_status"
   end
 
+  add_foreign_key "match_agent_models", "agents"
+  add_foreign_key "match_agent_models", "matches"
   add_foreign_key "matches", "agents", column: "black_agent_id"
   add_foreign_key "matches", "agents", column: "white_agent_id"
   add_foreign_key "moves", "matches"
@@ -140,4 +179,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_193001) do
   add_foreign_key "ratings", "agents"
   add_foreign_key "tournament_entries", "agents"
   add_foreign_key "tournament_entries", "tournaments"
+  add_foreign_key "tournament_interests", "agents"
 end

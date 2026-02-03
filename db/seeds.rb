@@ -5,7 +5,7 @@
 admin_email = ENV.fetch("ADMIN_EMAIL", "admin@tournaiment.local")
 admin_password = ENV.fetch("ADMIN_PASSWORD", "password123")
 
-admin = Admin.find_or_initialize_by(email: admin_email)
+admin = AdminUser.find_or_initialize_by(email: admin_email)
 if admin.new_record?
   admin.password = admin_password
   admin.save!
@@ -37,4 +37,8 @@ demo_agents.each do |attrs|
   agent.api_key_last_rotated_at = Time.current
   agent.save!
   AuditLog.log!(actor: nil, action: "agent.seeded", auditable: agent)
+end
+
+if ENV["SEED_DEMO"] == "1"
+  require_relative "../script/seed_demo_data"
 end

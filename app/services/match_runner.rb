@@ -17,6 +17,7 @@ class MatchRunner
 
     @match.start!
     @match.update!(started_at: Time.current) if @match.started_at.nil?
+    @match.snapshot_agent_models!
     AuditLog.log!(actor: nil, action: "match.started", auditable: @match)
 
     started_at = Time.current
@@ -24,20 +25,20 @@ class MatchRunner
     while @match.status == "running"
       break finalize!(:draw, "safety_cap") if safety_cap_reached?(started_at)
 
-      color = next_color
-      @current_color = color
-      agent = color == "white" ? @match.white_agent : @match.black_agent
+      actor = next_actor
+      @current_actor = actor
+      agent = actor == "white" ? @match.white_agent : @match.black_agent
 
-      move = request_move(agent, color)
+      move = request_move(agent, actor)
 
       if move == "resign"
-        return finalize!(color == "white" ? :black_win : :white_win, "resign")
+        return finalize!(actor == "white" ? :black_win : :white_win, "resign")
       end
 
       begin
-        @match.record_uci_move!(move)
-      rescue ChessRules::IllegalMove, ChessRules::BadNotation, ChessRules::InvalidFen
-        return finalize!(color == "white" ? :black_win : :white_win, "illegal_move")
+        @match.record_move!(move)
+      rescue ChessRules::IllegalMove, ChessRules::BadNotation, ChessRules::InvalidFen, GoRules::IllegalMove
+        return finalize!(actor == "white" ? :black_win : :white_win, "illegal_move")
       end
 
       if @match.result.present?
@@ -45,8 +46,8 @@ class MatchRunner
       end
     end
   rescue AgentUnavailable
-    loser_color = @current_color || next_color
-    finalize!(loser_color == "white" ? :black_win : :white_win, "no_response")
+    loser_actor = @current_actor || next_actor
+    finalize!(loser_actor == "white" ? :black_win : :white_win, "no_response")
   rescue StandardError => e
     @match.fail!
     AuditLog.log!(actor: nil, action: "match.failed", auditable: @match, metadata: { error: e.message })
@@ -59,16 +60,18 @@ class MatchRunner
     @match.ply_count >= MAX_PLIES || Time.current - started_at >= MAX_WALL_CLOCK
   end
 
-  def next_color
-    @match.ply_count.even? ? "white" : "black"
+  def next_actor
+    GameRegistry.fetch!(@match.game_key).actor_for_ply(@match.ply_count)
   end
 
-  def request_move(agent, color)
+  def request_move(agent, actor)
+    rules = GameRegistry.fetch!(@match.game_key)
     payload = {
       match_id: @match.id,
-      you_are: color,
-      fen: @match.current_fen,
-      move_number: (@match.ply_count / 2) + 1,
+      game: @match.game_key,
+      you_are: actor,
+      state: @match.current_state,
+      turn_number: rules.turn_number_for_ply(@match.ply_count + 1),
       time_remaining_seconds: 0
     }
 
@@ -100,30 +103,32 @@ class MatchRunner
   def finalize!(outcome, termination)
     case outcome
     when :white_win
-      @match.update!(result: "1-0", winner_color: "white", termination: termination)
+      @match.update!(result: "1-0", winner_actor: "white", termination: termination)
     when :black_win
-      @match.update!(result: "0-1", winner_color: "black", termination: termination)
+      @match.update!(result: "0-1", winner_actor: "black", termination: termination)
     when :draw
-      @match.update!(result: "1/2-1/2", winner_color: nil, termination: termination)
+      @match.update!(result: "1/2-1/2", winner_actor: nil, termination: termination)
     end
 
     @match.finish!
     @match.update!(finished_at: Time.current)
-    @match.generate_pgn!
+    @match.generate_record!
     RatingService.new(@match).apply!
     AuditLog.log!(actor: nil, action: "match.finished", auditable: @match, metadata: { result: @match.result, termination: termination })
   end
 
   def finalize_from_result!
-    case @match.result
-    when "1-0"
-      finalize!(:white_win, "checkmate")
-    when "0-1"
-      finalize!(:black_win, "checkmate")
-    when "1/2-1/2"
-      finalize!(:draw, "draw")
+    rules = GameRegistry.fetch!(@match.game_key)
+    scores = rules.scores_for_result(@match.result)
+    white_score = scores.fetch("white", 0.0)
+    black_score = scores.fetch("black", 0.0)
+
+    if white_score > black_score
+      finalize!(:white_win, rules.termination_for_result(@match.result))
+    elsif black_score > white_score
+      finalize!(:black_win, rules.termination_for_result(@match.result))
     else
-      finalize!(:draw, "draw")
+      finalize!(:draw, rules.termination_for_result(@match.result))
     end
   end
 end

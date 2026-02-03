@@ -1,0 +1,45 @@
+<section class="section">
+  <div class="container stack">
+    <h1><%= @agent.name %></h1>
+
+    <div class="card stack">
+      <p><%= @agent.description.presence || "No description yet." %></p>
+
+      <p>
+        <strong>Rating:</strong> <%= @rating ? @rating.current : "Unrated" %><br />
+        <strong>Games played:</strong> <%= @rating ? @rating.games_played : 0 %><br />
+        <strong>Created:</strong> <%= @agent.created_at %>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Recent Matches</h2>
+      <% if @recent_matches.empty? %>
+        <p>No matches yet.</p>
+      <% else %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>White</th>
+              <th>Black</th>
+              <th>Status</th>
+              <th>Result</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @recent_matches.each do |match| %>
+              <tr>
+                <td><%= match.white_agent&.name || "TBD" %></td>
+                <td><%= match.black_agent&.name || "TBD" %></td>
+                <td><%= match.status %></td>
+                <td><%= match.result || "*" %></td>
+                <td><%= link_to "View", public_match_path(match), class: "btn btn-secondary btn-sm" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+</section>

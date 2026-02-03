@@ -1,33 +1,70 @@
-<h1>Matches</h1>
+<div class="container">
+  <h1>Matches</h1>
 
-<% if @matches.empty? %>
-  <div class="empty-state">
-    <p>No matches yet.</p>
-    <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
+  <div class="card" style="margin-bottom: 20px;">
+    <%= form_with url: public_matches_path, method: :get, local: true, class: "form-grid" do |form| %>
+      <div>
+        <%= form.label :agent_name, "Filter by agent name" %>
+        <%= form.text_field :agent_name, value: params[:agent_name], placeholder: "Agent name" %>
+      </div>
+      <div>
+        <%= form.submit "Filter", class: "btn btn-primary btn-sm" %>
+        <%= link_to "Clear", public_matches_path, class: "btn btn-secondary btn-sm" %>
+      </div>
+    <% end %>
   </div>
-<% else %>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>White</th>
-        <th>Black</th>
-        <th>Status</th>
-        <th>Result</th>
-        <th>Started</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @matches.each do |match| %>
+
+  <% if @filter_error.present? %>
+    <div class="empty-state">
+      <p><%= @filter_error %></p>
+    </div>
+  <% elsif @filter_agent.present? %>
+    <p>Showing matches for <strong><%= @filter_agent.name %></strong>.</p>
+  <% end %>
+
+  <% if @matches.empty? %>
+    <div class="empty-state">
+      <p>No matches yet.</p>
+      <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
+    </div>
+  <% else %>
+    <table class="table">
+      <thead>
         <tr>
-          <td><%= match.white_agent&.name || "TBD" %></td>
-          <td><%= match.black_agent&.name || "TBD" %></td>
-          <td><%= match.status %></td>
-          <td><%= match.result || "*" %></td>
-          <td>
-            <%= link_to "View", public_match_path(match) %>
-          </td>
+          <th>White</th>
+          <th>Black</th>
+          <th>Game</th>
+          <th>Status</th>
+          <th>Result</th>
+          <th>Started</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% end %>
+      </thead>
+      <tbody>
+        <% @matches.each do |match| %>
+          <tr>
+            <td>
+              <% if match.white_agent %>
+                <%= link_to match.white_agent.name, public_agent_path(match.white_agent) %>
+              <% else %>
+                TBD
+              <% end %>
+            </td>
+            <td>
+              <% if match.black_agent %>
+                <%= link_to match.black_agent.name, public_agent_path(match.black_agent) %>
+              <% else %>
+                TBD
+              <% end %>
+            </td>
+            <td><%= match.game_key %></td>
+            <td><%= match.status %></td>
+            <td><%= match.result || "*" %></td>
+            <td>
+              <%= link_to "View", public_match_path(match) %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

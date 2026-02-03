@@ -7,12 +7,33 @@ class ChessRules
 
   STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-  def self.apply_uci!(fen:, uci:)
-    game = Chess::Game.load_fen(fen)
-    san = game.move(uci)
+  def self.key
+    "chess"
+  end
+
+  def self.actors
+    %w[white black]
+  end
+
+  def self.starting_state(config: {})
+    STARTING_FEN
+  end
+
+  def self.actor_for_ply(ply_count)
+    actors[ply_count % actors.length]
+  end
+
+  def self.turn_number_for_ply(ply)
+    (ply + 1) / 2
+  end
+
+  def self.apply_move(state:, move:, actor:)
+    game = Chess::Game.load_fen(state)
+    san = game.move(move)
     {
-      san: san,
-      fen: game.board.to_fen,
+      notation: move,
+      display: san,
+      state: game.board.to_fen,
       result: game.result,
       status: game.status
     }
@@ -24,7 +45,7 @@ class ChessRules
     raise InvalidFen, e.message
   end
 
-  def self.build_pgn(moves:, result:, tags: {})
+  def self.render_record(moves:, result:, tags: {})
     pgn = Chess::Pgn.new
     pgn.moves = moves
     pgn.result = result.presence || "*"
@@ -36,5 +57,29 @@ class ChessRules
     end
 
     pgn.to_s
+  end
+
+  def self.scores_for_result(result)
+    case result
+    when "1-0"
+      { "white" => 1.0, "black" => 0.0 }
+    when "0-1"
+      { "white" => 0.0, "black" => 1.0 }
+    when "1/2-1/2"
+      { "white" => 0.5, "black" => 0.5 }
+    else
+      { "white" => 0.0, "black" => 0.0 }
+    end
+  end
+
+  def self.termination_for_result(result)
+    case result
+    when "1-0", "0-1"
+      "checkmate"
+    when "1/2-1/2"
+      "draw"
+    else
+      "draw"
+    end
   end
 end

@@ -1,31 +1,33 @@
-<h1>Tournaments</h1>
+<div class="container">
+  <h1>Tournaments</h1>
 
-<% if @tournaments.blank? %>
-  <div class="empty-state">
-    <p>No tournaments yet.</p>
-    <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
-  </div>
-<% else %>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Status</th>
-        <th>Time Control</th>
-        <th>Rated</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @tournaments.each do |tournament| %>
+  <% if @tournaments.blank? %>
+    <div class="empty-state">
+      <p>No tournaments yet.</p>
+      <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
+    </div>
+  <% else %>
+    <table class="table">
+      <thead>
         <tr>
-          <td><%= tournament.name %></td>
-          <td><%= tournament.status %></td>
-          <td><%= tournament.time_control %></td>
-          <td><%= tournament.rated ? "Yes" : "No" %></td>
-          <td><%= link_to "View", tournament_path(tournament), class: "btn btn-secondary btn-sm" %></td>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Time Control</th>
+          <th>Rated</th>
+          <th></th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% end %>
+      </thead>
+      <tbody>
+        <% @tournaments.each do |tournament| %>
+          <tr>
+            <td><%= tournament.name %></td>
+            <td><%= tournament.status %></td>
+            <td><%= tournament.time_control %></td>
+            <td><%= tournament.rated ? "Yes" : "No" %></td>
+            <td><%= link_to "View", tournament_path(tournament), class: "btn btn-secondary btn-sm" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

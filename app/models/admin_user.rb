@@ -1,4 +1,6 @@
-class Admin < ApplicationRecord
+class AdminUser < ApplicationRecord
+  self.table_name = "admins"
+
   has_secure_password
 
   validates :email, presence: true, uniqueness: true

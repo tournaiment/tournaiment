@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
   def current_admin
     return @current_admin if defined?(@current_admin)
 
-    @current_admin = Admin.find_by(id: session[:admin_id])
+    @current_admin = AdminUser.find_by(id: session[:admin_id])
   end
 
   def admin_signed_in?

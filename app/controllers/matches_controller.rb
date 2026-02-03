@@ -65,7 +65,7 @@ class MatchesController < ApplicationController
   private
 
   def match_params
-    params.permit(:rated, :time_control)
+    params.permit(:rated, :time_control, :game_key, game_config: {})
   end
 
   def assign_black_agent(match, agent_id)

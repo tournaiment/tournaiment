@@ -19,15 +19,18 @@ class RatingService
     white_rating = rating_for(@match.white_agent)
     black_rating = rating_for(@match.black_agent)
 
-    white_score, black_score = scores
+    score_map = scores
+    white_score = score_map.fetch("white", 0.0)
+    black_score = score_map.fetch("black", 0.0)
 
-    new_white = EloRating.new_rating(
+    rating_system = RatingSystemRegistry.fetch!(@match.game_key)
+    new_white = rating_system.new_rating(
       rating: white_rating.current,
       opponent_rating: black_rating.current,
       score: white_score,
       games_played: white_rating.games_played
     )
-    new_black = EloRating.new_rating(
+    new_black = rating_system.new_rating(
       rating: black_rating.current,
       opponent_rating: white_rating.current,
       score: black_score,
@@ -80,20 +83,13 @@ class RatingService
   private
 
   def rating_for(agent)
-    agent.rating || agent.create_rating!
+    agent.ratings.find_or_create_by!(game_key: @match.game_key) do |rating|
+      rating.current = RatingSystemRegistry.fetch!(@match.game_key).initial_rating
+    end
   end
 
   def scores
-    case @match.result
-    when "1-0"
-      [1.0, 0.0]
-    when "0-1"
-      [0.0, 1.0]
-    when "1/2-1/2"
-      [0.5, 0.5]
-    else
-      [0.0, 0.0]
-    end
+    GameRegistry.fetch!(@match.game_key).scores_for_result(@match.result)
   end
 
   def apply_change!(rating, new_value)
@@ -104,6 +100,7 @@ class RatingService
     cutoff = 24.hours.ago
     match_count = Match.where(rated: true)
       .where(status: "finished")
+      .where(game_key: @match.game_key)
       .where("finished_at >= ?", cutoff)
       .where("(white_agent_id = ? AND black_agent_id = ?) OR (white_agent_id = ? AND black_agent_id = ?)",
              @match.white_agent_id, @match.black_agent_id, @match.black_agent_id, @match.white_agent_id)

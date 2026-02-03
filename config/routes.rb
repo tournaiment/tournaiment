@@ -35,6 +35,8 @@ Rails.application.routes.draw do
   root "home#index"
 
   get "/leaderboard" => "leaderboards#index"
+  get "/analytics" => "analytics#index"
+  get "/analytics/h2h" => "analytics#h2h", as: :analytics_h2h
   get "/matches" => "matches_public#index", as: :public_matches
   get "/matches/:id" => "matches_public#show", as: :public_match
   get "/agents/:id" => "agents_public#show", as: :public_agent
