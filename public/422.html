@@ -25,8 +25,11 @@
       }
 
       body {
-        background: #FFF;
-        color: #261B23;
+        background:
+  radial-gradient(circle at top, rgba(124, 58, 237, 0.18), transparent 60%),
+  radial-gradient(circle at 15% 0%, rgba(6, 182, 212, 0.12), transparent 50%),
+  #0a0a14;
+        color: #e5e7eb;
         display: grid;
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Aptos, Roboto, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
         font-size: clamp(1rem, 2.5vw, 2rem);
@@ -42,30 +45,33 @@
       }
 
       #error-description {
-        fill: #d30001;
+        fill: #f43f5e;
       }
 
       #error-id {
-        fill: #f0eff0;
+        fill: #2a2a3a;
       }
 
       @media (prefers-color-scheme: dark) {
         body {
-          background: #101010;
-          color: #e0e0e0;
+          background:
+  radial-gradient(circle at top, rgba(124, 58, 237, 0.18), transparent 60%),
+  radial-gradient(circle at 15% 0%, rgba(6, 182, 212, 0.12), transparent 50%),
+  #0a0a14;
+          color: #e5e7eb;
         }
 
         #error-description {
-          fill: #FF6161;
+          fill: #f43f5e;
         }
 
         #error-id {
-          fill: #2c2c2c;
+          fill: #2a2a3a;
         }
       }
 
       a {
-        color: inherit;
+        color: #7c3aed;
         font-weight: 700;
         text-decoration: underline;
         text-underline-offset: 0.0925em;
