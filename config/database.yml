@@ -23,6 +23,22 @@ default: &default
 development:
   <<: *default
   database: tournaiment_development
+  # See production for how to split cache/queue/cable databases.
+  # Using dedicated databases keeps SolidQueue and other system tables isolated.
+  # If you prefer a single database in development, remove these entries and
+  # the connects_to config in config/environments/development.rb.
+  cache:
+    <<: *default
+    database: tournaiment_development_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: tournaiment_development_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: tournaiment_development_cable
+    migrations_paths: db/cable_migrate
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -57,6 +73,18 @@ development:
 test:
   <<: *default
   database: tournaiment_test
+  cache:
+    <<: *default
+    database: tournaiment_test_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: tournaiment_test_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: tournaiment_test_cable
+    migrations_paths: db/cable_migrate
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
