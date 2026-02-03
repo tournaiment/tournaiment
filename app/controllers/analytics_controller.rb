@@ -21,12 +21,12 @@ class AnalyticsController < ApplicationController
       [
         record.game_key,
         record.provider.presence || "unknown",
-        record.model_slug.presence || "unknown",
+        record.model_name.presence || "unknown",
         record.model_version.presence || "unknown"
       ]
     end
 
-    @model_stats = grouped.map do |(game_key, provider, model_slug, model_version), entries|
+    @model_stats = grouped.map do |(game_key, provider, model_name, model_version), entries|
       stats = { wins: 0, losses: 0, draws: 0, total: 0 }
 
       entries.each do |entry|
@@ -53,7 +53,7 @@ class AnalyticsController < ApplicationController
       {
         game_key: game_key,
         provider: provider,
-        model_slug: model_slug,
+        model_name: model_name,
         model_version: model_version,
         wins: stats[:wins],
         losses: stats[:losses],
@@ -70,127 +70,94 @@ class AnalyticsController < ApplicationController
   def h2h
     @game_key = params[:game].presence || GameRegistry.supported_keys.first
 
-    @model_options = MatchAgentModel.where(game_key: @game_key)
-      .distinct
-      .order(:provider, :model_slug, :model_version)
-      .pluck(:provider, :model_slug, :model_version)
-      .map { |provider, model_slug, model_version| build_model_option(provider, model_slug, model_version) }
+    @agent_options = Agent.order(:name).pluck(:id, :name)
+      .map { |id, name| { id: id, name: name } }
 
-    @comparison_requested = params[:a_model].present?
+    @agent_a_id = params[:agent_a].presence || @agent_options.first&.fetch(:id)
+    @agent_b_id = params[:agent_b].presence || @agent_options.second&.fetch(:id) || @agent_a_id
 
-    if @model_options.any?
-      a_raw = parse_model_param(params[:a_model])
-      b_raw = parse_model_param(params[:b_model])
+    @agent_a = Agent.find_by(id: @agent_a_id)
+    @agent_b = Agent.find_by(id: @agent_b_id)
 
-      a_raw ||= @model_options.first || default_model_option
-      b_raw ||= @model_options.second || @model_options.first || default_model_option
+    matches = Match.where(status: "finished", game_key: @game_key)
+      .includes(:match_agent_models, :white_agent, :black_agent)
 
-      @model_a = a_raw.merge(label: model_label(a_raw))
-      @model_b = b_raw.merge(label: model_label(b_raw))
-    end
-
-    if @comparison_requested && @model_a && @model_b
-      matches = Match.where(status: "finished", game_key: @game_key)
-        .includes(:match_agent_models)
-
-      @h2h_summary = summarize_h2h(matches, @model_a, @model_b)
-      @chart_a = rating_series(@model_a, @game_key)
-      @chart_b = rating_series(@model_b, @game_key)
-    else
-      @h2h_summary = { wins_a: 0, wins_b: 0, draws: 0, total: 0 }
-      @chart_a = []
-      @chart_b = []
-    end
+    @h2h_summary, @match_rows = summarize_agent_h2h(matches, @agent_a, @agent_b)
+    @chart_a = rating_series_for_agent(@agent_a, @game_key)
+    @chart_b = rating_series_for_agent(@agent_b, @game_key)
+    @model_usage_a = model_usage_for_agent(@match_rows, @agent_a)
+    @model_usage_b = model_usage_for_agent(@match_rows, @agent_b)
 
     @games = GameRegistry.supported_keys
   end
 
   private
 
-  def build_model_option(provider, model_slug, model_version)
-    {
-      provider: provider.presence || "unknown",
-      model_slug: model_slug.presence || "unknown",
-      model_version: model_version.presence || "unknown",
-      label: model_label(provider: provider, model_slug: model_slug, model_version: model_version),
-      value: [provider.presence || "unknown", model_slug.presence || "unknown", model_version.presence || "unknown"].join("|")
-    }
-  end
-
-  def parse_model_param(value)
-    return nil if value.blank?
-
-    provider, model_slug, model_version = value.split("|", 3)
-    {
-      provider: provider,
-      model_slug: model_slug,
-      model_version: model_version
-    }
-  end
-
-  def default_model_option
-    { provider: "unknown", model_slug: "unknown", model_version: "unknown" }
-  end
-
-  def model_label(model)
-    provider = model[:provider].presence || "unknown"
-    model_slug = model[:model_slug].presence || "unknown"
-    model_version = model[:model_version].presence || "unknown"
-    label_from(provider, model_slug, model_version)
-  end
-
-  def label_from(provider, model_slug, model_version)
+  def label_from(provider, model_name, model_version)
     provider = provider.presence || "unknown"
-    model_slug = model_slug.presence || "unknown"
+    model_name = model_name.presence || "unknown"
     model_version = model_version.presence || "unknown"
-    "#{provider} #{model_slug} #{model_version}"
+    "#{provider} #{model_name} #{model_version}"
   end
 
-  def summarize_h2h(matches, model_a, model_b)
+  def summarize_agent_h2h(matches, agent_a, agent_b)
     summary = { wins_a: 0, wins_b: 0, draws: 0, total: 0 }
+    rows = []
+
+    return [summary, rows] if agent_a.nil? || agent_b.nil?
 
     matches.find_each do |match|
-      entries = match.match_agent_models.select { |entry| entry.game_key == match.game_key }
-      white = entries.find { |entry| entry.role == "white" }
-      black = entries.find { |entry| entry.role == "black" }
-      next unless white && black
+      next unless [match.white_agent_id, match.black_agent_id].sort == [agent_a.id, agent_b.id].sort
 
-      white_key = label_from(white.provider, white.model_slug, white.model_version)
-      black_key = label_from(black.provider, black.model_slug, black.model_version)
-      pair = [white_key, black_key].sort
-      target = [model_a[:label], model_b[:label]].sort
-      next unless pair == target
+      entries = match.match_agent_models.select { |entry| entry.game_key == match.game_key }
+      white_model = entries.find { |entry| entry.role == "white" }
+      black_model = entries.find { |entry| entry.role == "black" }
 
       summary[:total] += 1
       case match.result
       when "1-0"
-        white_key == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        match.white_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "0-1"
-        black_key == model_a[:label] ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        match.black_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "1/2-1/2"
         summary[:draws] += 1
       else
         summary[:total] -= 1
       end
+
+      rows << {
+        match_id: match.id,
+        result: match.result,
+        finished_at: match.finished_at,
+        white_agent: match.white_agent,
+        black_agent: match.black_agent,
+        white_model: white_model,
+        black_model: black_model,
+        white_model_label: white_model ? label_from(white_model.provider, white_model.model_name, white_model.model_version) : "unknown unknown unknown",
+        black_model_label: black_model ? label_from(black_model.provider, black_model.model_name, black_model.model_version) : "unknown unknown unknown"
+      }
     end
 
-    summary
+    [summary, rows]
   end
 
-  def rating_series(model, game_key)
-    changes = RatingChange.joins("INNER JOIN matches ON matches.id = rating_changes.match_id")
-      .joins("INNER JOIN match_agent_models ON match_agent_models.match_id = rating_changes.match_id AND match_agent_models.agent_id = rating_changes.agent_id AND match_agent_models.game_key = matches.game_key")
+  def rating_series_for_agent(agent, game_key)
+    return [] if agent.nil?
+
+    RatingChange.joins("INNER JOIN matches ON matches.id = rating_changes.match_id")
       .where(matches: { status: "finished", game_key: game_key })
-      .where(match_agent_models: {
-        provider: model[:provider] == "unknown" ? nil : model[:provider],
-        model_slug: model[:model_slug] == "unknown" ? nil : model[:model_slug],
-        model_version: model[:model_version] == "unknown" ? nil : model[:model_version]
-      })
+      .where(rating_changes: { agent_id: agent.id })
       .order("rating_changes.created_at ASC")
       .pluck("rating_changes.created_at", "rating_changes.after_rating")
+      .map { |timestamp, rating| { date: timestamp.to_date.to_s, value: rating.to_f } }
+  end
 
-    changes.map do |timestamp, rating|
-      { date: timestamp.to_date.to_s, value: rating.to_f }
+  def model_usage_for_agent(rows, agent)
+    usage = Hash.new(0)
+    rows.each do |row|
+      label = row[:white_agent]&.id == agent&.id ? row[:white_model_label] : row[:black_model_label]
+      usage[label] += 1
     end
+    usage.sort_by { |_, count| -count }.map { |label, count| { label: label, count: count } }
   end
 end

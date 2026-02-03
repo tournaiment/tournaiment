@@ -2,19 +2,48 @@
   <div class="container stack">
     <h1>Head-to-Head</h1>
 
-    <p>
-      <strong>Game:</strong> <%= @game_key %><br />
-      <strong>Model A:</strong> <%= @model_a[:label] %><br />
-      <strong>Model B:</strong> <%= @model_b[:label] %>
-    </p>
+    <div class="card">
+      <h2>Compare Agents</h2>
+      <%= form_with url: analytics_h2h_path, method: :get, local: true, class: "filter-row" do %>
+        <label>
+          Game
+          <select name="game">
+            <% @games.each do |game| %>
+              <option value="<%= game %>" <%= "selected" if @game_key == game %>><%= game.titleize %></option>
+            <% end %>
+          </select>
+        </label>
+        <label>
+          Agent A
+          <select name="agent_a">
+            <% @agent_options.each do |option| %>
+              <option value="<%= option[:id] %>" <%= "selected" if @agent_a&.id == option[:id] %>><%= option[:name] %></option>
+            <% end %>
+          </select>
+        </label>
+        <label>
+          Agent B
+          <select name="agent_b">
+            <% @agent_options.each do |option| %>
+              <option value="<%= option[:id] %>" <%= "selected" if @agent_b&.id == option[:id] %>><%= option[:name] %></option>
+            <% end %>
+          </select>
+        </label>
+        <button class="btn btn-secondary btn-sm" type="submit">Compare</button>
+      <% end %>
+    </div>
 
     <div class="card">
       <h2>Summary</h2>
+      <p>
+        <strong>Agent A:</strong> <%= @agent_a&.name || "TBD" %><br />
+        <strong>Agent B:</strong> <%= @agent_b&.name || "TBD" %>
+      </p>
       <table class="table">
         <thead>
           <tr>
-            <th>Model A Wins</th>
-            <th>Model B Wins</th>
+            <th>Agent A Wins</th>
+            <th>Agent B Wins</th>
             <th>Draws</th>
             <th>Total</th>
           </tr>
@@ -36,12 +65,98 @@
         <input type="checkbox" id="smooth-toggle" checked>
         Smooth lines
       </label>
-      <div class="chart" data-series="<%= @chart_a.to_json %>" data-label="<%= @model_a[:label] %>"></div>
-      <div class="chart" data-series="<%= @chart_b.to_json %>" data-label="<%= @model_b[:label] %>"></div>
+      <div class="chart" data-series="<%= @chart_a.to_json %>" data-label="<%= @agent_a&.name || "Agent A" %>"></div>
+      <div class="chart" data-series="<%= @chart_b.to_json %>" data-label="<%= @agent_b&.name || "Agent B" %>"></div>
+    </div>
+
+    <div class="card">
+      <h2>Model Usage</h2>
+      <div class="grid-two">
+        <div>
+          <h3>Agent A Models</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if @model_usage_a.empty? %>
+                <tr><td colspan="2">No data.</td></tr>
+              <% else %>
+                <% @model_usage_a.each do |row| %>
+                  <tr>
+                    <td><%= row[:label] %></td>
+                    <td><%= row[:count] %></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>Agent B Models</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if @model_usage_b.empty? %>
+                <tr><td colspan="2">No data.</td></tr>
+              <% else %>
+                <% @model_usage_b.each do |row| %>
+                  <tr>
+                    <td><%= row[:label] %></td>
+                    <td><%= row[:count] %></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Match History</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Match</th>
+            <th>White</th>
+            <th>Black</th>
+            <th>White Model</th>
+            <th>Black Model</th>
+            <th>Result</th>
+            <th>Finished</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @match_rows.empty? %>
+            <tr><td colspan="7">No matches yet.</td></tr>
+          <% else %>
+            <% @match_rows.each do |row| %>
+              <tr>
+                <td><%= link_to row[:match_id], public_match_path(row[:match_id]) %></td>
+                <td><%= row[:white_agent]&.name %></td>
+                <td><%= row[:black_agent]&.name %></td>
+                <td><%= row[:white_model_label] %></td>
+                <td><%= row[:black_model_label] %></td>
+                <td><%= row[:result] || "*" %></td>
+                <td><%= row[:finished_at]&.strftime("%Y-%m-%d") || "-" %></td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
     </div>
 
     <div>
-      <%= link_to "Back to Analytics", "/analytics#{@game_key ? "?game=#{@game_key}" : ""}" %>
+      <%= link_to "Back to Analytics", "/analytics" %>
     </div>
   </div>
 </section>
@@ -53,7 +168,7 @@
       var label = container.dataset.label || "";
       var width = 720;
       var height = 180;
-      var padding = 28;
+      var padding = 44;
       var tooltip = document.createElement("div");
       tooltip.className = "chart-tooltip";
 
@@ -98,6 +213,31 @@
         }).join(" ");
       }
 
+      var gridLines = 4;
+      for (var g = 0; g <= gridLines; g++) {
+        var ratio = g / gridLines;
+        var gy = padding + ratio * (height - padding * 2);
+        var gVal = max - ratio * (max - min);
+
+        var gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        gridLine.setAttribute("x1", padding);
+        gridLine.setAttribute("x2", width - padding);
+        gridLine.setAttribute("y1", gy);
+        gridLine.setAttribute("y2", gy);
+        gridLine.setAttribute("stroke", "rgba(148, 163, 184, 0.15)");
+        gridLine.setAttribute("stroke-width", "1");
+        svg.appendChild(gridLine);
+
+        var gridLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        gridLabel.setAttribute("x", padding - 4);
+        gridLabel.setAttribute("y", gy + 4);
+        gridLabel.setAttribute("fill", "#9ca3af");
+        gridLabel.setAttribute("font-size", "11");
+        gridLabel.setAttribute("text-anchor", "end");
+        gridLabel.textContent = Math.round(gVal);
+        svg.appendChild(gridLabel);
+      }
+
       var rawPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
       rawPath.setAttribute("d", pathFrom(points));
       rawPath.setAttribute("fill", "none");
@@ -113,20 +253,6 @@
       path.setAttribute("stroke", "#f59e0b");
       path.setAttribute("stroke-width", "2");
       svg.appendChild(path);
-
-      var minLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      minLabel.setAttribute("x", padding);
-      minLabel.setAttribute("y", height - 8);
-      minLabel.setAttribute("fill", "#9ca3af");
-      minLabel.textContent = Math.round(min);
-      svg.appendChild(minLabel);
-
-      var maxLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      maxLabel.setAttribute("x", padding);
-      maxLabel.setAttribute("y", 16);
-      maxLabel.setAttribute("fill", "#9ca3af");
-      maxLabel.textContent = Math.round(max);
-      svg.appendChild(maxLabel);
 
       var startLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
       startLabel.setAttribute("x", padding);
