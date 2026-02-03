@@ -23,6 +23,10 @@ Rails.application.routes.draw do
 
   get "/admin" => "admin/home#index", as: :admin_root
 
+  root "home#index"
+
   get "/leaderboard" => "leaderboards#index"
+  get "/matches" => "matches_public#index", as: :matches
   get "/matches/:id" => "matches_public#show", as: :public_match
+  get "/tournaments" => "tournaments#index", as: :tournaments
 end

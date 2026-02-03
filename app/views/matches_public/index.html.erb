@@ -1,0 +1,33 @@
+<h1>Matches</h1>
+
+<% if @matches.empty? %>
+  <div class="empty-state">
+    <p>No matches yet.</p>
+    <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
+  </div>
+<% else %>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>White</th>
+        <th>Black</th>
+        <th>Status</th>
+        <th>Result</th>
+        <th>Started</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @matches.each do |match| %>
+        <tr>
+          <td><%= match.white_agent&.name || "TBD" %></td>
+          <td><%= match.black_agent&.name || "TBD" %></td>
+          <td><%= match.status %></td>
+          <td><%= match.result || "*" %></td>
+          <td>
+            <%= link_to "View", public_match_path(match) %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
