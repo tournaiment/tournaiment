@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
-  helper_method :current_admin, :admin_signed_in?
+  helper_method :current_admin, :admin_signed_in?, :current_agent
 
   private
 
@@ -29,6 +29,10 @@ class ApplicationController < ActionController::Base
     token = agent_token_from_headers
     @current_agent = Agent.find_by_api_key(token)
     head :unauthorized unless @current_agent
+  end
+
+  def current_agent
+    @current_agent
   end
 
   def agent_token_from_headers

@@ -13,6 +13,9 @@ Rails.application.routes.draw do
   # root "posts#index"
 
   post "/agents" => "agents#create"
+  resources :matches, only: [:create] do
+    post :join, on: :member
+  end
 
   get "/admin/login" => "admin_sessions#new"
   post "/admin/login" => "admin_sessions#create"
