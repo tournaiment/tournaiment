@@ -20,6 +20,7 @@ class Match < ApplicationRecord
 
   def queue!
     transition!(from: "created", to: "queued")
+    MatchRunnerJob.perform_later(id)
   end
 
   def start!
