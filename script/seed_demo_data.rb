@@ -123,6 +123,8 @@ module DemoSeed
       agent.save!
       AuditLog.log!(actor: nil, action: "agent.seeded", auditable: agent) if agent.previous_changes.key?("id")
     end
+
+    backdate_agents if ENV["SEED_BACKDATE"] != "0"
   end
 
   def seed_matches
@@ -141,6 +143,10 @@ module DemoSeed
         {}
       end
 
+      match_created_at = random_past_time
+      started_at = match_created_at + rand(2..90).minutes
+      finished_at = started_at + rand(5..120).minutes
+
       match = Match.create!(
         white_agent: white,
         black_agent: black,
@@ -148,7 +154,9 @@ module DemoSeed
         time_control: TIME_CONTROLS.sample,
         status: "running",
         game_key: game_key,
-        game_config: game_config
+        game_config: game_config,
+        created_at: match_created_at,
+        updated_at: match_created_at
       )
 
       match.snapshot_agent_models!
@@ -162,9 +170,9 @@ module DemoSeed
 
       if i < finished_cutoff
         result ||= RESULTS.sample
-        finalize_match(match, result)
+        finalize_match(match, result, started_at: started_at, finished_at: finished_at)
       else
-        match.update!(status: "running", started_at: match.started_at || Time.current)
+        match.update!(status: "running", started_at: started_at, updated_at: started_at)
       end
     end
   end
@@ -200,7 +208,8 @@ module DemoSeed
         color: actor,
         uci: uci,
         san: data[:display],
-        fen: data[:state]
+        fen: data[:state],
+        created_at: match.created_at + (idx + 1).minutes
       )
     end
 
@@ -208,7 +217,7 @@ module DemoSeed
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || Time.current
+      started_at: match.started_at || match.created_at
     )
   end
 
@@ -235,7 +244,8 @@ module DemoSeed
         color: actor,
         uci: move,
         san: data[:display],
-        fen: data[:state]
+        fen: data[:state],
+        created_at: match.created_at + (idx + 1).minutes
       )
 
       status = data[:status] || status
@@ -246,13 +256,13 @@ module DemoSeed
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || Time.current
+      started_at: match.started_at || match.created_at
     )
 
     result
   end
 
-  def finalize_match(match, result)
+  def finalize_match(match, result, started_at: nil, finished_at: nil)
     rules = GameRegistry.fetch!(match.game_key)
     termination = rules.termination_for_result(result)
     scores = rules.scores_for_result(result)
@@ -268,7 +278,8 @@ module DemoSeed
       status: "finished",
       result: result,
       termination: termination,
-      finished_at: Time.current,
+      started_at: started_at || match.started_at,
+      finished_at: finished_at || Time.current,
       winner_actor: winner_actor,
       winner_color: winner_actor
     )
@@ -276,6 +287,26 @@ module DemoSeed
     moves = match.moves.order(:ply).pluck(:display)
     match.update!(pgn: rules.render_record(moves: moves, result: result, tags: match.send(:default_tags)))
     RatingService.new(match).apply!
+
+    if finished_at
+      RatingChange.where(match_id: match.id).update_all(created_at: finished_at)
+      match.update_columns(updated_at: finished_at)
+    end
+  end
+
+  def random_past_time
+    days = (ENV["SEED_BACKDATE_DAYS"] || "120").to_i
+    Time.current - rand(1..days).days - rand(0..23).hours - rand(0..59).minutes
+  end
+
+  def backdate_agents
+    days = (ENV["SEED_BACKDATE_DAYS"] || "120").to_i
+    Agent.where(name: AGENT_NAMES).find_each do |agent|
+      next if agent.created_at < Time.current - 1.day
+
+      ts = Time.current - rand(10..days).days
+      agent.update_columns(created_at: ts, updated_at: ts)
+    end
   end
 end
 

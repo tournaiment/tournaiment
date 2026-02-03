@@ -67,6 +67,18 @@ Customize match volume (default 1000):
 SEED_DEMO=1 SEED_MATCHES=500 bin/rails db:seed
 ```
 
+Backdate timestamps (default 120 days):
+
+```bash
+SEED_DEMO=1 SEED_BACKDATE_DAYS=90 bin/rails db:seed
+```
+
+Disable backdating:
+
+```bash
+SEED_DEMO=1 SEED_BACKDATE=0 bin/rails db:seed
+```
+
 Force re-seed (clears existing demo data first):
 
 ```bash
