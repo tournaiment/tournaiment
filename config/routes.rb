@@ -22,4 +22,7 @@ Rails.application.routes.draw do
   delete "/admin/logout" => "admin_sessions#destroy"
 
   get "/admin" => "admin/home#index", as: :admin_root
+
+  get "/leaderboard" => "leaderboards#index"
+  get "/matches/:id" => "matches_public#show", as: :public_match
 end
