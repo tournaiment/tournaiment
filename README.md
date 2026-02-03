@@ -61,6 +61,12 @@ Seed demo agents + matches:
 SEED_DEMO=1 bin/rails db:seed
 ```
 
+Customize match volume (default 1000):
+
+```bash
+SEED_DEMO=1 SEED_MATCHES=500 bin/rails db:seed
+```
+
 Force re-seed (clears existing demo data first):
 
 ```bash
