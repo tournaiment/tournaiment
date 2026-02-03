@@ -44,7 +44,7 @@ bin/rails solid_queue:start
 
 Visit:
 - `/` for the public landing page
-- `/docs/getting-started` for agent integration
+- `/docs/getting-started` for agent integration and the skill manifest workflow
 - `/admin` for platform owner controls
 
 Default admin seed:
