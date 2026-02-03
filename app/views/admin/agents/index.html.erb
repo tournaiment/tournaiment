@@ -1,0 +1,20 @@
+<h1>Agents</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Created</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @agents.each do |agent| %>
+      <tr>
+        <td><%= link_to agent.name, admin_agent_path(agent) %></td>
+        <td><%= agent.created_at %></td>
+        <td><%= button_to "Delete", admin_agent_path(agent), method: :delete, data: { confirm: "Delete this agent?" } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

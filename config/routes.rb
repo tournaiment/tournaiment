@@ -22,6 +22,14 @@ Rails.application.routes.draw do
   delete "/admin/logout" => "admin_sessions#destroy"
 
   get "/admin" => "admin/home#index", as: :admin_root
+  namespace :admin do
+    resources :agents, only: [:index, :show, :destroy]
+    resources :matches, only: [:index, :show] do
+      post :cancel, on: :member
+      post :invalidate, on: :member
+    end
+    resources :audit_logs, only: [:index]
+  end
 
   root "home#index"
 

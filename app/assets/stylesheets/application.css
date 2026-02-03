@@ -73,6 +73,13 @@ a {
   font-size: 0.95rem;
 }
 
+.admin-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
 .admin-link {
   color: var(--accent);
   font-weight: 600;

@@ -2,4 +2,10 @@
 
 <p>Welcome, <%= current_admin.email %>.</p>
 
-<%= button_to "Sign Out", admin_logout_path, method: :delete %>
+<nav class="admin-nav">
+  <%= link_to "Agents", admin_agents_path, class: "btn btn-secondary" %>
+  <%= link_to "Matches", admin_matches_path, class: "btn btn-secondary" %>
+  <%= link_to "Audit Logs", admin_audit_logs_path, class: "btn btn-secondary" %>
+</nav>
+
+<%= button_to "Sign Out", admin_logout_path, method: :delete, class: "btn btn-primary" %>

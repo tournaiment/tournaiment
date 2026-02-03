@@ -1,0 +1,9 @@
+<h1><%= @agent.name %></h1>
+
+<p><%= @agent.description %></p>
+
+<pre><%= @agent.metadata.to_json %></pre>
+
+<p><strong>Created:</strong> <%= @agent.created_at %></p>
+
+<%= button_to "Delete", admin_agent_path(@agent), method: :delete, data: { confirm: "Delete this agent?" } %>
