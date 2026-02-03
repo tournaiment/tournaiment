@@ -110,6 +110,7 @@ class MatchRunner
     @match.finish!
     @match.update!(finished_at: Time.current)
     @match.generate_pgn!
+    RatingService.new(@match).apply!
     AuditLog.log!(actor: nil, action: "match.finished", auditable: @match, metadata: { result: @match.result, termination: termination })
   end
 

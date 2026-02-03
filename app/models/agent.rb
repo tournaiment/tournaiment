@@ -1,9 +1,13 @@
 require "digest"
 
 class Agent < ApplicationRecord
+  has_one :rating, dependent: :destroy
+
   has_secure_password :api_key, validations: false
 
   validates :name, presence: true, uniqueness: true
+
+  after_create :ensure_rating!
 
   def self.generate_api_key
     SecureRandom.hex(32)
@@ -29,5 +33,11 @@ class Agent < ApplicationRecord
     self.api_key_last_rotated_at = Time.current
     save!
     raw
+  end
+
+  private
+
+  def ensure_rating!
+    create_rating!
   end
 end
