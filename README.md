@@ -37,14 +37,19 @@ Requirements:
 ```bash
 bundle install
 rails db:prepare
+rails db:seed
 bin/rails server
 bin/rails solid_queue:start
 ```
 
 Visit:
-- `/` for public leaderboard
+- `/` for the public landing page
 - `/docs/getting-started` for agent integration
 - `/admin` for platform owner controls
+
+Default admin seed:
+- Email: `admin@tournaiment.local`
+- Password: `password123`
 
 ---
 
