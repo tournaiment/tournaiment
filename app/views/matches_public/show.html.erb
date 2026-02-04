@@ -1,38 +1,138 @@
-<section class="section">
-  <div class="container stack">
+<section class="section"
+  data-controller="match-replay"
+  data-match-replay-id-value="<%= @match.id %>"
+  data-match-replay-game-value="<%= @match.game_key %>"
+  data-match-replay-initial-state-value="<%= ERB::Util.html_escape(@match.initial_state.to_s) %>"
+  data-match-replay-current-state-value="<%= ERB::Util.html_escape(@match.current_state.to_s) %>"
+  data-match-replay-moves-value="<%= json_escape(@moves.map { |m| { state: m.state, actor: m.actor, notation: m.notation, display: m.display } }.to_json) %>">
+  <div id="match-view" class="container stack" data-game="<%= @match.game_key %>">
     <div class="card stack">
       <h1>Match Replay</h1>
       <p>
         <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
         <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
         <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
-        <strong>Status:</strong> <span id="match-status"><%= @match.status.to_s.humanize %></span><br />
-        <strong>Result:</strong> <span id="match-result"><%= @match.result || "*" %></span><br />
-        <strong>Spectators:</strong> <span id="spectator-count">-</span>
+        <strong>Status:</strong> <span data-match-replay-target="status"><%= @match.status.to_s.humanize %></span><br />
+        <strong>Result:</strong> <span data-match-replay-target="result"><%= @match.result || "*" %></span><br />
+        <strong>Termination:</strong> <%= @match.termination || "-" %><br />
+        <% if @match.resigned_by_side.present? %>
+          <strong>Resigned By:</strong>
+          <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
+        <% end %>
+        <% if @match.forfeit_by_side.present? %>
+          <strong>Forfeit By:</strong>
+          <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
+        <% end %>
+        <% if @match.draw_reason.present? %>
+          <strong>Draw Reason:</strong> <%= @match.draw_reason %><br />
+        <% end %>
+        <strong>Spectators:</strong> <span data-match-replay-target="spectator">-</span>
       </p>
     </div>
 
     <% if @match.game_key == "chess" %>
       <div class="match-grid">
-        <div class="card">
+        <div class="card board-panel">
           <h2>Board</h2>
-          <div class="chess-board" id="chess-board" data-fen="<%= @match.current_state %>"></div>
+          <div class="board-frame">
+            <div class="board-coords board-coords-top" data-match-replay-target="coordsTop"></div>
+            <div class="board-coords board-coords-left" data-match-replay-target="coordsLeft"></div>
+            <div class="board-coords board-coords-right" data-match-replay-target="coordsRight"></div>
+            <div class="board-coords board-coords-bottom" data-match-replay-target="coordsBottom"></div>
+            <div class="chess-board" data-match-replay-target="board" data-fen="<%= @match.current_state.presence || @match.initial_state %>">
+            <% fen = (@match.current_state.presence || @match.initial_state).to_s.split(" ").first %>
+            <% if fen.present? %>
+              <% piece_map = {
+                "p" => "♟", "r" => "♜", "n" => "♞", "b" => "♝", "q" => "♛", "k" => "♚",
+                "P" => "♙", "R" => "♖", "N" => "♘", "B" => "♗", "Q" => "♕", "K" => "♔"
+              } %>
+              <% fen.split("/").each_with_index do |row, row_index| %>
+                <% col_index = 0 %>
+                <% row.each_char do |char| %>
+                  <% if char =~ /\d/ %>
+                    <% char.to_i.times do %>
+                      <div class="chess-square <%= (row_index + col_index).even? ? "light" : "dark" %>"></div>
+                      <% col_index += 1 %>
+                    <% end %>
+                  <% else %>
+                    <div class="chess-square <%= (row_index + col_index).even? ? "light" : "dark" %>"><%= piece_map[char] %></div>
+                    <% col_index += 1 %>
+                  <% end %>
+                <% end %>
+              <% end %>
+            <% end %>
+            </div>
+          </div>
           <div class="replay-controls">
-            <button class="btn btn-secondary btn-sm" type="button" data-action="start">Start</button>
-            <button class="btn btn-secondary btn-sm" type="button" data-action="prev">Prev</button>
-            <button class="btn btn-primary btn-sm" type="button" data-action="play">Play</button>
-            <button class="btn btn-secondary btn-sm" type="button" data-action="next">Next</button>
-            <button class="btn btn-secondary btn-sm" type="button" data-action="end">End</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#start">Start</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#prev">Prev</button>
+            <button class="btn btn-primary btn-sm" type="button" data-action="match-replay#togglePlay" data-match-replay-target="playButton">Play</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#next">Next</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#end">End</button>
+            <div class="replay-speed">
+              <span>Fast</span>
+              <input type="range" min="300" max="2000" step="100" value="1150" data-action="input->match-replay#updateSpeed" data-match-replay-target="speedRange">
+              <span>Slow</span>
+            </div>
           </div>
         </div>
-        <div class="card">
+        <div class="card moves-panel">
           <h2>Moves</h2>
-          <ol class="move-list" id="move-list">
-            <% @moves.each do |move| %>
-              <li>
-                <strong><%= move.actor %></strong>
-                <%= move.notation %>
-                (<%= move.display %>)
+          <div class="move-pagination">
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
+            <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
+            <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
+          </div>
+          <ol class="move-list move-table" data-match-replay-target="moveList">
+            <% @moves.each_slice(2).with_index(1) do |pair, number| %>
+              <li class="move-row">
+                <span class="move-num"><%= number %>.</span>
+                <span class="move-cell"><%= pair[0] ? "#{pair[0].actor} #{pair[0].notation} (#{pair[0].display})" : "-" %></span>
+                <span class="move-cell"><%= pair[1] ? "#{pair[1].actor} #{pair[1].notation} (#{pair[1].display})" : "-" %></span>
+              </li>
+            <% end %>
+          </ol>
+        </div>
+      </div>
+    <% elsif @match.game_key == "go" %>
+      <div class="match-grid">
+        <div class="card board-panel">
+          <h2>Board</h2>
+          <div class="board-frame">
+            <div class="board-coords board-coords-top" data-match-replay-target="coordsTop"></div>
+            <div class="board-coords board-coords-left" data-match-replay-target="coordsLeft"></div>
+            <div class="board-coords board-coords-right" data-match-replay-target="coordsRight"></div>
+            <div class="board-coords board-coords-bottom" data-match-replay-target="coordsBottom"></div>
+            <div class="go-board" data-match-replay-target="board" data-state="<%= ERB::Util.html_escape(@match.current_state.presence || @match.initial_state) %>"></div>
+          </div>
+          <div class="replay-controls">
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#start">Start</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#prev">Prev</button>
+            <button class="btn btn-primary btn-sm" type="button" data-action="match-replay#togglePlay" data-match-replay-target="playButton">Play</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#next">Next</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#end">End</button>
+            <div class="replay-speed">
+              <span>Fast</span>
+              <input type="range" min="300" max="2000" step="100" value="1150" data-action="input->match-replay#updateSpeed" data-match-replay-target="speedRange">
+              <span>Slow</span>
+            </div>
+          </div>
+        </div>
+        <div class="card moves-panel">
+          <h2>Moves</h2>
+          <div class="move-pagination">
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
+            <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
+            <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
+          </div>
+          <ol class="move-list move-table" data-match-replay-target="moveList">
+            <% @moves.each_slice(2).with_index(1) do |pair, number| %>
+              <li class="move-row">
+                <span class="move-num"><%= number %>.</span>
+                <span class="move-cell"><%= pair[0] ? "#{pair[0].actor} #{pair[0].notation} (#{pair[0].display})" : "-" %></span>
+                <span class="move-cell"><%= pair[1] ? "#{pair[1].actor} #{pair[1].notation} (#{pair[1].display})" : "-" %></span>
               </li>
             <% end %>
           </ol>
@@ -41,12 +141,20 @@
     <% else %>
       <div class="card">
         <h2>Moves</h2>
-        <ol class="move-list" id="move-list">
-          <% @moves.each do |move| %>
-            <li>
-              <strong><%= move.actor %></strong>
-              <%= move.notation %>
-              (<%= move.display %>)
+        <div class="move-pagination">
+          <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageStart">First</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
+          <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
+          <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageEnd">Last</button>
+        </div>
+        <ol class="move-list move-table" data-match-replay-target="moveList">
+          <% @moves.each_slice(2).with_index(1) do |pair, number| %>
+            <li class="move-row">
+              <span class="move-num"><%= number %>.</span>
+              <span class="move-cell"><%= pair[0] ? "#{pair[0].actor} #{pair[0].notation} (#{pair[0].display})" : "-" %></span>
+              <span class="move-cell"><%= pair[1] ? "#{pair[1].actor} #{pair[1].notation} (#{pair[1].display})" : "-" %></span>
             </li>
           <% end %>
         </ol>
@@ -61,152 +169,3 @@
     <% end %>
   </div>
 </section>
-
-<script>
-  (function () {
-    var boardEl = document.getElementById("chess-board");
-    if (!boardEl) return;
-
-    var statusEl = document.getElementById("match-status");
-    var resultEl = document.getElementById("match-result");
-    var moveListEl = document.getElementById("move-list");
-    var spectatorEl = document.getElementById("spectator-count");
-    var matchId = "<%= @match.id %>";
-
-    var pieceMap = {
-      "p": "♟",
-      "r": "♜",
-      "n": "♞",
-      "b": "♝",
-      "q": "♛",
-      "k": "♚",
-      "P": "♙",
-      "R": "♖",
-      "N": "♘",
-      "B": "♗",
-      "Q": "♕",
-      "K": "♔"
-    };
-
-    var state = {
-      initial: "<%= @match.initial_state %>",
-      moves: <%= @moves.map { |m| { state: m.state, actor: m.actor, notation: m.notation, display: m.display } }.to_json %>,
-      current: "<%= @match.current_state %>"
-    };
-
-    var currentIndex = state.moves.length;
-    var timer = null;
-    var playBtn = document.querySelector(".replay-controls button[data-action='play']");
-
-    function renderBoard(fen) {
-      if (!fen) return;
-      var rows = fen.split(" ")[0].split("/");
-      boardEl.innerHTML = "";
-      rows.forEach(function (row, rowIndex) {
-        var colIndex = 0;
-        row.split("").forEach(function (char) {
-          if (Number.isInteger(parseInt(char, 10))) {
-            var emptyCount = parseInt(char, 10);
-            for (var i = 0; i < emptyCount; i++) {
-              addSquare(rowIndex, colIndex, "");
-              colIndex += 1;
-            }
-          } else {
-            addSquare(rowIndex, colIndex, pieceMap[char] || "");
-            colIndex += 1;
-          }
-        });
-      });
-    }
-
-    function addSquare(row, col, content) {
-      var square = document.createElement("div");
-      square.className = "chess-square " + ((row + col) % 2 === 0 ? "light" : "dark");
-      square.textContent = content;
-      boardEl.appendChild(square);
-    }
-
-    function renderMoves(moves) {
-      if (!moveListEl) return;
-      moveListEl.innerHTML = "";
-      moves.forEach(function (move, index) {
-        var item = document.createElement("li");
-        if (index === currentIndex - 1) item.classList.add("move-active");
-        item.innerHTML = "<strong>" + move.actor + "</strong> " + move.notation + " (" + move.display + ")";
-        moveListEl.appendChild(item);
-      });
-    }
-
-    function setIndex(index) {
-      currentIndex = Math.max(0, Math.min(index, state.moves.length));
-      var fen = currentIndex === 0 ? state.initial : state.moves[currentIndex - 1].state;
-      renderBoard(fen);
-      renderMoves(state.moves);
-    }
-
-    function play() {
-      if (timer) return;
-      if (playBtn) playBtn.textContent = "Pause";
-      timer = setInterval(function () {
-        if (currentIndex >= state.moves.length) return pause();
-        setIndex(currentIndex + 1);
-      }, 700);
-    }
-
-    function pause() {
-      if (!timer) return;
-      clearInterval(timer);
-      timer = null;
-      if (playBtn) playBtn.textContent = "Play";
-    }
-
-    function updateFromPayload(data) {
-      if (!data) return;
-      state.initial = data.initial_state || state.initial;
-      state.current = data.current_state || state.current;
-      state.moves = data.moves || state.moves;
-      if (currentIndex >= state.moves.length) {
-        currentIndex = state.moves.length;
-      }
-      setIndex(currentIndex);
-      if (statusEl) statusEl.textContent = (data.status || "").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-      if (resultEl) resultEl.textContent = data.result || "*";
-    }
-
-    function fetchMatch() {
-      fetch("/matches/" + matchId + ".json")
-        .then(function (res) { return res.json(); })
-        .then(function (data) { updateFromPayload(data); })
-        .catch(function () {});
-    }
-
-    document.querySelectorAll(".replay-controls button").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var action = btn.dataset.action;
-        if (action === "start") { pause(); setIndex(0); }
-        if (action === "prev") { pause(); setIndex(currentIndex - 1); }
-        if (action === "play") { timer ? pause() : play(); }
-        if (action === "next") { pause(); setIndex(currentIndex + 1); }
-        if (action === "end") { pause(); setIndex(state.moves.length); }
-      });
-    });
-
-    renderBoard(boardEl.dataset.fen);
-    setIndex(state.moves.length);
-
-    var cable = window.ActionCable ? window.ActionCable.createConsumer() : null;
-    if (cable) {
-      cable.subscriptions.create({ channel: "MatchChannel", match_id: matchId }, {
-        received: function (data) {
-          if (data && data.spectators !== undefined) {
-            if (spectatorEl) spectatorEl.textContent = data.spectators;
-            return;
-          }
-          updateFromPayload(data);
-        }
-      });
-    } else {
-      setInterval(fetchMatch, 4000);
-    }
-  })();
-</script>

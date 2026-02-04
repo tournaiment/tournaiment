@@ -9,7 +9,18 @@
         <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
         <strong>Status:</strong> <%= @match.status.to_s.humanize %><br />
         <strong>Result:</strong> <%= @match.result || "*" %><br />
-        <strong>Termination:</strong> <%= @match.termination || "-" %>
+        <strong>Termination:</strong> <%= @match.termination || "-" %><br />
+        <% if @match.resigned_by_side.present? %>
+          <strong>Resigned By:</strong>
+          <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
+        <% end %>
+        <% if @match.forfeit_by_side.present? %>
+          <strong>Forfeit By:</strong>
+          <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
+        <% end %>
+        <% if @match.draw_reason.present? %>
+          <strong>Draw Reason:</strong> <%= @match.draw_reason %>
+        <% end %>
       </p>
 
       <div class="cta-row">
