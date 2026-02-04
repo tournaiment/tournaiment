@@ -92,6 +92,11 @@ class Match < ApplicationRecord
       game_key: game_key,
       status: status,
       result: result,
+      termination: termination,
+      winner_side: winner_side,
+      resigned_by_side: resigned_by_side,
+      forfeit_by_side: forfeit_by_side,
+      draw_reason: draw_reason,
       started_at: started_at,
       finished_at: finished_at,
       initial_state: initial_state,
@@ -121,7 +126,14 @@ class Match < ApplicationRecord
   end
 
   def broadcastable_change?
-    saved_change_to_status? || saved_change_to_result? || saved_change_to_current_state?
+    saved_change_to_status? ||
+      saved_change_to_result? ||
+      saved_change_to_current_state? ||
+      saved_change_to_termination? ||
+      saved_change_to_winner_side? ||
+      saved_change_to_resigned_by_side? ||
+      saved_change_to_forfeit_by_side? ||
+      saved_change_to_draw_reason?
   end
 
   def snapshot_agent_models!

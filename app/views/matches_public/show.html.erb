@@ -4,7 +4,13 @@
   data-match-replay-game-value="<%= @match.game_key %>"
   data-match-replay-initial-state-value="<%= ERB::Util.html_escape(@match.initial_state.to_s) %>"
   data-match-replay-current-state-value="<%= ERB::Util.html_escape(@match.current_state.to_s) %>"
-  data-match-replay-moves-value="<%= json_escape(@moves.map { |m| { state: m.state, actor: m.actor, notation: m.notation, display: m.display } }.to_json) %>">
+  data-match-replay-moves-value="<%= json_escape(@moves.map { |m| { state: m.state, actor: m.actor, notation: m.notation, display: m.display } }.to_json) %>"
+  data-match-replay-agent-a-value="<%= @match.agent_a&.name.to_s %>"
+  data-match-replay-agent-b-value="<%= @match.agent_b&.name.to_s %>"
+  data-match-replay-termination-value="<%= @match.termination.to_s %>"
+  data-match-replay-resigned-by-value="<%= @match.resigned_by_side.to_s %>"
+  data-match-replay-forfeit-by-value="<%= @match.forfeit_by_side.to_s %>"
+  data-match-replay-draw-reason-value="<%= @match.draw_reason.to_s %>">
   <div id="match-view" class="container stack" data-game="<%= @match.game_key %>">
     <div class="card stack">
       <h1>Match Replay</h1>
@@ -14,18 +20,22 @@
         <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
         <strong>Status:</strong> <span data-match-replay-target="status"><%= @match.status.to_s.humanize %></span><br />
         <strong>Result:</strong> <span data-match-replay-target="result"><%= @match.result || "*" %></span><br />
-        <strong>Termination:</strong> <%= @match.termination || "-" %><br />
-        <% if @match.resigned_by_side.present? %>
+        <strong>Termination:</strong> <span data-match-replay-target="termination"><%= @match.termination || "-" %></span><br />
+        <span data-match-replay-target="resignedRow" <%= "hidden" if @match.resigned_by_side.blank? %>>
           <strong>Resigned By:</strong>
-          <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
-        <% end %>
-        <% if @match.forfeit_by_side.present? %>
+          <span data-match-replay-target="resignedBy">
+            <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
+          </span><br />
+        </span>
+        <span data-match-replay-target="forfeitRow" <%= "hidden" if @match.forfeit_by_side.blank? %>>
           <strong>Forfeit By:</strong>
-          <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %><br />
-        <% end %>
-        <% if @match.draw_reason.present? %>
-          <strong>Draw Reason:</strong> <%= @match.draw_reason %><br />
-        <% end %>
+          <span data-match-replay-target="forfeitBy">
+            <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
+          </span><br />
+        </span>
+        <span data-match-replay-target="drawRow" <%= "hidden" if @match.draw_reason.blank? %>>
+          <strong>Draw Reason:</strong> <span data-match-replay-target="drawReason"><%= @match.draw_reason %></span><br />
+        </span>
         <strong>Spectators:</strong> <span data-match-replay-target="spectator">-</span>
       </p>
     </div>
@@ -81,7 +91,6 @@
           <div class="move-pagination">
             <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
             <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
-            <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
             <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
           </div>
           <ol class="move-list move-table" data-match-replay-target="moveList">
@@ -124,7 +133,6 @@
           <div class="move-pagination">
             <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
             <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
-            <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
             <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
           </div>
           <ol class="move-list move-table" data-match-replay-target="moveList">
@@ -145,7 +153,6 @@
           <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageStart">First</button>
           <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pagePrev">Prev</button>
           <span class="move-page-label" data-match-replay-target="movePageLabel"></span>
-          <button class="btn btn-link btn-xs" type="button" data-action="match-replay#pageCurrent">Jump to current</button>
           <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageNext">Next</button>
           <button class="btn btn-secondary btn-sm" type="button" data-action="match-replay#pageEnd">Last</button>
         </div>
