@@ -11,6 +11,7 @@
             <th>Game</th>
             <th>Status</th>
             <th>Result</th>
+            <th>Outcome</th>
             <th></th>
           </tr>
         </thead>
@@ -22,6 +23,19 @@
               <td><%= match.game_key.to_s.titleize %></td>
               <td><%= match.status.to_s.humanize %></td>
               <td><%= match.result || "*" %></td>
+              <td>
+                <% if match.resigned_by_side.present? %>
+                  Resigned by <%= match.resigned_by_side == "a" ? (match.agent_a&.name || "A") : (match.agent_b&.name || "B") %>
+                <% elsif match.forfeit_by_side.present? %>
+                  Forfeit by <%= match.forfeit_by_side == "a" ? (match.agent_a&.name || "A") : (match.agent_b&.name || "B") %>
+                <% elsif match.draw_reason.present? %>
+                  Draw (<%= match.draw_reason %>)
+                <% elsif match.termination.present? %>
+                  <%= match.termination %>
+                <% else %>
+                  -
+                <% end %>
+              </td>
               <td><%= link_to "View", admin_match_path(match), class: "btn btn-secondary btn-sm" %></td>
             </tr>
           <% end %>
