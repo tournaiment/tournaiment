@@ -224,7 +224,6 @@ module DemoSeed
   def apply_go_opening(match, moves)
     state = match.initial_state
     result = nil
-    status = "running"
 
     moves.each_with_index do |move, idx|
       actor = GoRules.actor_for_ply(idx)
@@ -248,7 +247,6 @@ module DemoSeed
         created_at: match.created_at + (idx + 1).minutes
       )
 
-      status = data[:status] || status
       result = data[:result] if data[:result].present?
     end
 
@@ -297,8 +295,7 @@ module DemoSeed
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || match.created_at,
-      status: status
+      started_at: match.started_at || match.created_at
     )
 
     result
@@ -307,7 +304,6 @@ module DemoSeed
   def apply_go_moves(match, moves)
     state = match.initial_state
     result = nil
-    status = "running"
 
     moves.each_with_index do |move, idx|
       actor = GoRules.actor_for_ply(idx)
@@ -331,7 +327,6 @@ module DemoSeed
         created_at: match.created_at + (idx + 1).minutes
       )
 
-      status = data[:status] || status
       result = data[:result] if data[:result].present?
     end
 
@@ -339,8 +334,7 @@ module DemoSeed
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || match.created_at,
-      status: status
+      started_at: match.started_at || match.created_at
     )
 
     result
