@@ -79,7 +79,7 @@ pre {
 }
 
 .container {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -379,25 +379,28 @@ pre {
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(260px, 420px) minmax(260px, 1fr);
+  align-items: start;
 }
 
 .chess-board {
   display: grid;
-  grid-template-columns: repeat(8, minmax(32px, 1fr));
-  grid-auto-rows: minmax(32px, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 2px;
   background: #0b0b14;
   padding: 10px;
   border-radius: 12px;
   border: 1px solid var(--border);
+  width: 100%;
   max-width: 420px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
 }
 
 .chess-square {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(16px, 2.8vw, 30px);
+  font-size: clamp(14px, 3.2vw, 30px);
   border-radius: 6px;
   aspect-ratio: 1 / 1;
   color: #f8fafc;
@@ -732,10 +735,10 @@ pre {
   flex-wrap: wrap;
 }
 
-.profile-hero-info {
+.profile-hero-ratings {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .profile-name {

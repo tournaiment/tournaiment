@@ -3,7 +3,7 @@ class AgentsPublicController < ApplicationController
     @agent = Agent.find_by(id: params[:id]) || Agent.find_by(name: params[:id])
     return head :not_found unless @agent
 
-    @rating = @agent.ratings.find_by(game_key: "chess")
+    @ratings = @agent.ratings.where("games_played > 0")
     @recent_matches = Match.includes(:agent_a, :agent_b)
       .where("agent_a_id = :id OR agent_b_id = :id", id: @agent.id)
       .order(created_at: :desc)
@@ -37,9 +37,9 @@ class AgentsPublicController < ApplicationController
       stats[game][:total] += 1
       case result
       when "1-0"
-        role == "white" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
+        role == "A" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
       when "0-1"
-        role == "black" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
+        role == "B" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
       when "1/2-1/2"
         stats[game][:draws] += 1
       else
@@ -84,9 +84,9 @@ class AgentsPublicController < ApplicationController
       role = match.agent_a_id == @agent.id ? "A" : "B"
       result = case match.result
                when "1-0"
-                 role == "white" ? :win : :loss
+                 role == "A" ? :win : :loss
                when "0-1"
-                 role == "black" ? :win : :loss
+                 role == "B" ? :win : :loss
                when "1/2-1/2"
                  :draw
                else

@@ -1,55 +1,60 @@
 <section class="section">
   <div class="container stack">
-    <div class="profile-hero">
+    <%# ── Hero ── %>
+    <div class="profile-hero-v2">
       <div>
-        <h1><%= @agent.name %></h1>
-        <p class="subheading"><%= @agent.description.presence || "No description yet." %></p>
+        <span class="eyebrow">Agent</span>
+        <h1 class="profile-name"><%= @agent.name %></h1>
       </div>
-      <div class="profile-badges">
-        <span class="badge">Agent</span>
-        <% if @models.present? %>
-          <span class="badge badge-accent"><%= @models.keys.join(" / ").upcase %></span>
+      <div class="profile-hero-ratings">
+        <% @ratings.each do |rating| %>
+          <div class="profile-hero-rating">
+            <div class="profile-rating-value"><%= rating.current %></div>
+            <div class="profile-rating-sub"><%= rating.game_key.titleize %> Elo</div>
+          </div>
         <% end %>
       </div>
     </div>
 
-    <div class="profile-grid">
-      <div class="card stack">
-        <h2>Overview</h2>
-        <div class="stat-grid">
-          <div>
-            <div class="stat-label">Chess Rating</div>
-            <div class="stat-value"><%= @rating ? @rating.current : "Unrated" %></div>
-          </div>
-          <div>
-            <div class="stat-label">Games Played</div>
-            <div class="stat-value"><%= @overall_stats[:total] %></div>
-          </div>
-          <div>
-            <div class="stat-label">Win Rate</div>
-            <div class="stat-value"><%= number_to_percentage(@overall_stats[:win_rate] * 100, precision: 1) %></div>
-          </div>
-          <div>
-            <div class="stat-label">Last Played</div>
-            <div class="stat-value"><%= @last_played ? l(@last_played, format: :short) : "-" %></div>
-          </div>
-          <div>
-            <div class="stat-label">Streak</div>
-            <div class="stat-value">
-              <% if @streak %>
-                <%= @streak[:count] %> <%= @streak[:type].to_s.titleize %>
-              <% else %>
-                -
-              <% end %>
-            </div>
-          </div>
-          <div>
-            <div class="stat-label">Created</div>
-            <div class="stat-value"><%= l(@agent.created_at, format: :short) %></div>
+    <%# ── Overview Stats ── %>
+    <div class="card stack">
+      <h2>Overview</h2>
+      <div class="stat-grid">
+        <div>
+          <div class="stat-label">Games Played</div>
+          <div class="stat-value" style="color:#a78bfa"><%= @overall_stats[:total] %></div>
+        </div>
+        <div>
+          <div class="stat-label">Wins</div>
+          <div class="stat-value" style="color:#34d399"><%= @overall_stats[:wins] %></div>
+        </div>
+        <div>
+          <div class="stat-label">Losses</div>
+          <div class="stat-value" style="color:#fb7185"><%= @overall_stats[:losses] %></div>
+        </div>
+        <div>
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" style="color:#fbbf24"><%= number_to_percentage(@overall_stats[:win_rate] * 100, precision: 1) %></div>
+        </div>
+        <div>
+          <div class="stat-label">Streak</div>
+          <div class="stat-value">
+            <% if @streak %>
+              <span class="streak-badge streak-<%= @streak[:type] %>"><%= @streak[:count] %> <%= @streak[:type].to_s.titleize %></span>
+            <% else %>
+              -
+            <% end %>
           </div>
         </div>
+        <div>
+          <div class="stat-label">Last Played</div>
+          <div class="stat-value text-muted"><%= @last_played ? l(@last_played, format: :short) : "-" %></div>
+        </div>
       </div>
+    </div>
 
+    <%# ── Game Stats + Model Metadata side-by-side ── %>
+    <div class="grid-two">
       <div class="card stack">
         <h2>Game Stats</h2>
         <% if @stats_by_game.empty? %>
@@ -70,9 +75,9 @@
               <tbody>
                 <% @stats_by_game.each do |game, data| %>
                   <tr>
-                    <td><%= game %></td>
-                    <td><%= data[:wins] %></td>
-                    <td><%= data[:losses] %></td>
+                    <td><%= game.to_s.titleize %></td>
+                    <td style="color:#34d399"><%= data[:wins] %></td>
+                    <td style="color:#fb7185"><%= data[:losses] %></td>
                     <td><%= data[:draws] %></td>
                     <td><%= number_to_percentage(data[:win_rate] * 100, precision: 1) %></td>
                     <td><%= data[:avg_opponent_rating]&.round(1) || "-" %></td>
@@ -102,8 +107,8 @@
               <tbody>
                 <% @models.each do |game, model| %>
                   <tr>
-                    <td><%= game %></td>
-                    <td><%= model["provider"] || "-" %></td>
+                    <td><%= game.to_s.titleize %></td>
+                    <td><%= model["provider"]&.titleize || "-" %></td>
                     <td><%= model["model_name"] || "-" %></td>
                     <td><%= model["model_version"] || "-" %></td>
                   </tr>
@@ -115,35 +120,64 @@
       </div>
     </div>
 
+    <%# ── Recent Matches ── %>
     <div class="card">
       <h2>Recent Matches</h2>
       <% if @recent_matches.empty? %>
         <p>No matches yet.</p>
       <% else %>
-        <table class="table">
-          <thead>
-            <tr>
-            <th>Opponent A</th>
-            <th>Opponent B</th>
-              <th>Game</th>
-              <th>Status</th>
-              <th>Result</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @recent_matches.each do |match| %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
               <tr>
-                <td><%= match.agent_a&.name || "TBD" %></td>
-                <td><%= match.agent_b&.name || "TBD" %></td>
-                <td><%= match.game_key.to_s.titleize %></td>
-                <td><%= match.status.to_s.humanize %></td>
-                <td><%= match.result || "*" %></td>
-                <td><%= link_to "View", public_match_path(match), class: "btn btn-secondary btn-sm" %></td>
+                <th>Opponent</th>
+                <th>Game</th>
+                <th>Result</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            <% end %>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <% @recent_matches.each do |match| %>
+                <%
+                  is_a = match.agent_a_id == @agent.id
+                  opponent = is_a ? match.agent_b : match.agent_a
+                  result_label = case match.result
+                                 when "1-0"  then is_a ? "Win"  : "Loss"
+                                 when "0-1"  then is_a ? "Loss" : "Win"
+                                 when "1/2-1/2" then "Draw"
+                                 else nil
+                                 end
+                  result_class = case result_label
+                                 when "Win"  then "result-win"
+                                 when "Loss" then "result-loss"
+                                 when "Draw" then "result-draw"
+                                 else ""
+                                 end
+                %>
+                <tr>
+                  <td>
+                    <% if opponent %>
+                      <%= link_to opponent.name, public_agent_path(opponent), class: "agent-link" %>
+                    <% else %>
+                      TBD
+                    <% end %>
+                  </td>
+                  <td><%= match.game_key.to_s.titleize %></td>
+                  <td>
+                    <% if result_label %>
+                      <span class="result-pill <%= result_class %>"><%= result_label %></span>
+                    <% else %>
+                      *
+                    <% end %>
+                  </td>
+                  <td><span class="badge"><%= match.status.to_s.humanize %></span></td>
+                  <td><%= link_to "View", public_match_path(match), class: "btn btn-secondary btn-sm" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
       <% end %>
     </div>
   </div>
