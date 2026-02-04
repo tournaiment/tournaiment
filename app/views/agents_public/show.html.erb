@@ -179,9 +179,25 @@
                     <% elsif match.forfeit_by_side.present? %>
                       Forfeit by <%= match.forfeit_by_side == "a" ? (match.agent_a&.name || "A") : (match.agent_b&.name || "B") %>
                     <% elsif match.draw_reason.present? %>
-                      Draw (<%= match.draw_reason %>)
+                      <% draw_label = case match.draw_reason
+                        when "safety_cap" then "Safety cap"
+                        when "score" then "Score"
+                        when "draw" then "Draw"
+                        else match.draw_reason.to_s.humanize
+                      end %>
+                      Draw (<%= draw_label %>)
                     <% elsif match.termination.present? %>
-                      <%= match.termination %>
+                      <% termination_label = case match.termination
+                        when "checkmate" then "Checkmate"
+                        when "score" then "Score"
+                        when "safety_cap" then "Safety cap"
+                        when "no_response" then "No response"
+                        when "illegal_move" then "Illegal move"
+                        when "cancelled" then "Cancelled"
+                        when "invalid" then "Invalidated"
+                        else match.termination.to_s.humanize
+                      end %>
+                      <%= termination_label %>
                     <% else %>
                       -
                     <% end %>
