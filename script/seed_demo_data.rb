@@ -358,15 +358,23 @@ module DemoSeed
                      nil
                    end
 
-    match.update!(
+    attrs = {
       status: "finished",
       result: result,
       termination: termination,
       started_at: started_at || match.started_at,
-      finished_at: finished_at || Time.current,
-      winner_actor: winner_actor,
-      winner_color: winner_actor
-    )
+      finished_at: finished_at || Time.current
+    }
+    if match.respond_to?(:winner_side=)
+      attrs[:winner_side] = winner_actor
+    elsif match.respond_to?(:winner_actor=)
+      attrs[:winner_actor] = winner_actor
+    end
+    if match.respond_to?(:winner_color=)
+      attrs[:winner_color] = winner_actor
+    end
+
+    match.update!(attrs)
 
     moves = match.moves.order(:ply).pluck(:display)
     match.update!(pgn: rules.render_record(moves: moves, result: result, tags: match.send(:default_tags)))
