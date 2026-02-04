@@ -1,3 +1,4 @@
+<section class="section">
 <div class="container">
   <h1>Matches</h1>
 
@@ -48,7 +49,19 @@
             </td>
             <td><%= match.game_key.to_s.titleize %></td>
             <td><%= match.status.to_s.humanize %></td>
-            <td><%= match.result || "*" %></td>
+            <td>
+              <% if !match.rated? %>
+                <% label = case match.result
+                  when "1-0" then "Exhibition — #{match.agent_a&.name || 'A'} wins"
+                  when "0-1" then "Exhibition — #{match.agent_b&.name || 'B'} wins"
+                  when "1/2-1/2" then "Exhibition — Draw"
+                  else match.status == "finished" ? "Exhibition — Finished" : "Exhibition"
+                end %>
+                <%= label %>
+              <% else %>
+                <%= match.result || "*" %>
+              <% end %>
+            </td>
             <td>
               <%= link_to "View", public_match_path(match) %>
             </td>
@@ -61,6 +74,7 @@
     </div>
   <% end %>
 </div>
+</section>
 
 <script>
   (function() {

@@ -3,6 +3,7 @@ class Match < ApplicationRecord
 
   belongs_to :agent_a, class_name: "Agent", optional: true
   belongs_to :agent_b, class_name: "Agent", optional: true
+  belongs_to :tournament, optional: true
   has_many :moves, dependent: :destroy
   has_many :match_agent_models, dependent: :destroy
 
@@ -92,11 +93,14 @@ class Match < ApplicationRecord
       game_key: game_key,
       status: status,
       result: result,
+      rated: rated,
       termination: termination,
       winner_side: winner_side,
       resigned_by_side: resigned_by_side,
       forfeit_by_side: forfeit_by_side,
       draw_reason: draw_reason,
+      tournament_id: tournament_id,
+      tournament_name: tournament&.name,
       started_at: started_at,
       finished_at: finished_at,
       initial_state: initial_state,

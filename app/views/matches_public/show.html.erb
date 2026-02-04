@@ -10,34 +10,80 @@
   data-match-replay-termination-value="<%= @match.termination.to_s %>"
   data-match-replay-resigned-by-value="<%= @match.resigned_by_side.to_s %>"
   data-match-replay-forfeit-by-value="<%= @match.forfeit_by_side.to_s %>"
-  data-match-replay-draw-reason-value="<%= @match.draw_reason.to_s %>">
+  data-match-replay-draw-reason-value="<%= @match.draw_reason.to_s %>"
+  data-match-replay-rated-value="<%= @match.rated? %>">
   <div id="match-view" class="container stack" data-game="<%= @match.game_key %>">
-    <div class="card stack">
-      <h1>Match Replay</h1>
-      <p>
-        <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
-        <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
-        <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
-        <strong>Status:</strong> <span data-match-replay-target="status"><%= @match.status.to_s.humanize %></span><br />
-        <strong>Result:</strong> <span data-match-replay-target="result"><%= @match.result || "*" %></span><br />
-        <strong>Termination:</strong> <span data-match-replay-target="termination"><%= @match.termination || "-" %></span><br />
-        <span data-match-replay-target="resignedRow" <%= "hidden" if @match.resigned_by_side.blank? %>>
-          <strong>Resigned By:</strong>
-          <span data-match-replay-target="resignedBy">
-            <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
-          </span><br />
+    <div class="card">
+      <h1 style="margin: 0 0 16px">Match Replay</h1>
+      <div class="match-info-grid">
+        <div>
+          <div class="stat-label">Opponent A</div>
+          <div class="stat-value">
+            <% if @match.agent_a %>
+              <%= link_to @match.agent_a.name, public_agent_path(@match.agent_a), style: "text-decoration: underline; text-underline-offset: 3px" %>
+            <% else %>
+              TBD
+            <% end %>
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">Opponent B</div>
+          <div class="stat-value">
+            <% if @match.agent_b %>
+              <%= link_to @match.agent_b.name, public_agent_path(@match.agent_b), style: "text-decoration: underline; text-underline-offset: 3px" %>
+            <% else %>
+              TBD
+            <% end %>
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">Game</div>
+          <div class="stat-value"><%= @match.game_key.to_s.titleize %></div>
+        </div>
+        <div>
+          <div class="stat-label">Status</div>
+          <div class="stat-value"><span data-match-replay-target="status"><%= @match.status.to_s.humanize %></span></div>
+        </div>
+        <div>
+          <div class="stat-label">Result</div>
+          <div class="stat-value"><span data-match-replay-target="result"><%=
+            if !@match.rated?
+              case @match.result
+              when "1-0"     then "Exhibition — #{@match.agent_a&.name || 'A'} wins"
+              when "0-1"     then "Exhibition — #{@match.agent_b&.name || 'B'} wins"
+              when "1/2-1/2" then "Exhibition — Draw"
+              else @match.status == "finished" ? "Exhibition — Finished" : "Exhibition"
+              end
+            else
+              case @match.result
+              when "1-0"     then "#{@match.agent_a&.name || 'A'} wins"
+              when "0-1"     then "#{@match.agent_b&.name || 'B'} wins"
+              when "1/2-1/2" then "Draw"
+              else @match.status == "finished" ? "Finished" : "In progress"
+              end
+            end
+          %></span></div>
+        </div>
+        <div>
+          <div class="stat-label">Spectators</div>
+          <div class="stat-value"><span data-match-replay-target="spectator">-</span></div>
+        </div>
+      </div>
+      <span data-match-replay-target="resignedRow" <%= "hidden" if @match.resigned_by_side.blank? %>>
+        <strong>Resigned By:</strong>
+        <span data-match-replay-target="resignedBy">
+          <%= @match.resigned_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
         </span>
-        <span data-match-replay-target="forfeitRow" <%= "hidden" if @match.forfeit_by_side.blank? %>>
-          <strong>Forfeit By:</strong>
-          <span data-match-replay-target="forfeitBy">
-            <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
-          </span><br />
+      </span>
+      <span data-match-replay-target="forfeitRow" <%= "hidden" if @match.forfeit_by_side.blank? %>>
+        <strong>Forfeit By:</strong>
+        <span data-match-replay-target="forfeitBy">
+          <%= @match.forfeit_by_side == "a" ? (@match.agent_a&.name || "Opponent A") : (@match.agent_b&.name || "Opponent B") %>
         </span>
-        <span data-match-replay-target="drawRow" <%= "hidden" if @match.draw_reason.blank? %>>
-          <strong>Draw Reason:</strong> <span data-match-replay-target="drawReason"><%= @match.draw_reason %></span><br />
-        </span>
-        <strong>Spectators:</strong> <span data-match-replay-target="spectator">-</span>
-      </p>
+      </span>
+      <span data-match-replay-target="drawRow" <%= "hidden" if @match.draw_reason.blank? %>>
+        <strong>Draw Reason:</strong> <span data-match-replay-target="drawReason"><%= @match.draw_reason %></span>
+      </span>
     </div>
 
     <% if @match.game_key == "chess" %>
@@ -85,6 +131,11 @@
               <span>Slow</span>
             </div>
           </div>
+          <div class="board-commentary">
+            <div class="commentary-title">Commentary</div>
+            <div class="commentary-meta"><%= match_context_label(@match) %></div>
+            <p data-match-replay-target="commentary"><%= match_commentary(@match) %></p>
+          </div>
         </div>
         <div class="card moves-panel">
           <h2>Moves</h2>
@@ -126,6 +177,11 @@
               <input type="range" min="300" max="2000" step="100" value="1150" data-action="input->match-replay#updateSpeed" data-match-replay-target="speedRange">
               <span>Slow</span>
             </div>
+          </div>
+          <div class="board-commentary">
+            <div class="commentary-title">Commentary</div>
+            <div class="commentary-meta"><%= match_context_label(@match) %></div>
+            <p data-match-replay-target="commentary"><%= match_commentary(@match) %></p>
           </div>
         </div>
         <div class="card moves-panel">

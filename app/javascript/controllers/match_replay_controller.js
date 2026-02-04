@@ -14,6 +14,7 @@ export default class extends Controller {
     "coordsBottom",
     "speedRange",
     "movePageLabel",
+    "commentary",
     "termination",
     "resignedRow",
     "resignedBy",
@@ -33,7 +34,8 @@ export default class extends Controller {
     termination: String,
     resignedBy: String,
     forfeitBy: String,
-    drawReason: String
+    drawReason: String,
+    rated: Boolean
   }
 
   connect() {
@@ -362,7 +364,8 @@ export default class extends Controller {
     if (this.currentIndex > this.moves.length) this.currentIndex = this.moves.length
     this.setIndex(this.currentIndex)
     if (this.hasStatusTarget) this.statusTarget.textContent = this.humanize(data.status || "")
-    if (this.hasResultTarget) this.resultTarget.textContent = data.result || "*"
+    if (this.hasResultTarget) this.resultTarget.textContent = this.resultLabel(data)
+    if (this.hasCommentaryTarget) this.commentaryTarget.textContent = this.buildCommentary(data)
     this.updateOutcomeDetails(data)
     if (this.hasSpectatorTarget && data.status !== "running") {
       this.spectatorTarget.textContent = "-"
@@ -463,8 +466,78 @@ export default class extends Controller {
   }
 
   sideLabel(side) {
-    if (side === "a") return this.agentAValue || "Opponent A"
-    if (side === "b") return this.agentBValue || "Opponent B"
-    return "-"
+    const normalized = this.normalizeSide(side)
+    if (normalized === "a") return this.agentAValue || "Opponent A"
+    if (normalized === "b") return this.agentBValue || "Opponent B"
+    return "Winner"
+  }
+
+  normalizeSide(side) {
+    const value = (side || "").toString()
+    if (value === "a" || value === "white") return "a"
+    if (value === "b" || value === "black") return "b"
+    return value
+  }
+
+  buildCommentary(data) {
+    const status = (data.status || "").toString()
+    if (status === "created" || status === "queued") return "Awaiting start."
+    if (status === "running") return "Live match in progress."
+    if (status === "cancelled") return "Match cancelled. Result discarded."
+    if (status === "invalid") return "Match invalidated. Result rolled back."
+    if (status === "failed") return "Match failed."
+
+    const parts = []
+    if (data.resigned_by_side) {
+      parts.push(`${this.sideLabel(data.resigned_by_side)} resigns.`)
+    } else if (data.forfeit_by_side) {
+      parts.push(`${this.sideLabel(data.forfeit_by_side)} forfeits.`)
+    } else if (data.draw_reason) {
+      parts.push(`Draw by ${this.humanize(data.draw_reason)}.`)
+    } else if (data.winner_side) {
+      parts.push(`${this.sideLabel(data.winner_side)} wins.`)
+    } else if (data.result && data.result !== "*") {
+      const inferred = this.resultPhrase(data.result)
+      if (inferred) parts.push(inferred)
+    } else {
+      parts.push("Match finished.")
+    }
+
+    if (data.result && data.result !== "*") {
+      if (data.rated === false) {
+        const label = this.resultLabel(data).replace("Exhibition — ", "")
+        if (label) parts.push(label.endsWith(".") ? label : `${label}.`)
+      } else {
+        parts.push(`Result: ${data.result}.`)
+      }
+    }
+    return parts.join(" ")
+  }
+
+  resultPhrase(result) {
+    if (result === "1-0") return `${this.sideLabel("a")} wins.`
+    if (result === "0-1") return `${this.sideLabel("b")} wins.`
+    if (result === "1/2-1/2") return "Draw."
+    return null
+  }
+
+  resultLabel(data) {
+    const result = data.result || ""
+    const status = data.status || ""
+    const rated = data.rated !== undefined ? data.rated : this.ratedValue
+    const agentA = this.sideLabel("a")
+    const agentB = this.sideLabel("b")
+
+    if (!rated) {
+      if (result === "1-0") return `Exhibition — ${agentA} wins`
+      if (result === "0-1") return `Exhibition — ${agentB} wins`
+      if (result === "1/2-1/2") return "Exhibition — Draw"
+      return status === "finished" ? "Exhibition — Finished" : "Exhibition"
+    }
+
+    if (result === "1-0") return `${agentA} wins`
+    if (result === "0-1") return `${agentB} wins`
+    if (result === "1/2-1/2") return "Draw"
+    return status === "finished" ? "Finished" : "In progress"
   }
 }
