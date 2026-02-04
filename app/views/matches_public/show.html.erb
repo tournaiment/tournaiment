@@ -1,27 +1,135 @@
-<div class="container">
-  <h1>Match Replay</h1>
+<section class="section">
+  <div class="container stack">
+    <div class="card stack">
+      <h1>Match Replay</h1>
+      <p>
+        <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
+        <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
+        <strong>Game:</strong> <%= @match.game_key %><br />
+        <strong>Status:</strong> <span id="match-status"><%= @match.status %></span><br />
+        <strong>Result:</strong> <span id="match-result"><%= @match.result || "*" %></span>
+      </p>
+    </div>
 
-  <p>
-  <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
-  <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
-    <strong>Game:</strong> <%= @match.game_key %><br />
-    <strong>Status:</strong> <%= @match.status %><br />
-    <strong>Result:</strong> <%= @match.result || "*" %>
-  </p>
-
-  <h2>Moves</h2>
-  <ol>
-    <% @moves.each do |move| %>
-      <li>
-        <strong><%= move.actor %></strong>
-        <%= move.notation %>
-        (<%= move.display %>)
-      </li>
+    <% if @match.game_key == "chess" %>
+      <div class="match-grid">
+        <div class="card">
+          <h2>Board</h2>
+          <div class="chess-board" id="chess-board" data-fen="<%= @match.current_state %>"></div>
+        </div>
+        <div class="card">
+          <h2>Moves</h2>
+          <ol class="move-list" id="move-list">
+            <% @moves.each do |move| %>
+              <li>
+                <strong><%= move.actor %></strong>
+                <%= move.notation %>
+                (<%= move.display %>)
+              </li>
+            <% end %>
+          </ol>
+        </div>
+      </div>
+    <% else %>
+      <div class="card">
+        <h2>Moves</h2>
+        <ol class="move-list" id="move-list">
+          <% @moves.each do |move| %>
+            <li>
+              <strong><%= move.actor %></strong>
+              <%= move.notation %>
+              (<%= move.display %>)
+            </li>
+          <% end %>
+        </ol>
+      </div>
     <% end %>
-  </ol>
 
-  <% if @match.pgn.present? %>
-    <h2>Record</h2>
-    <pre><%= @match.pgn %></pre>
-  <% end %>
-</div>
+    <% if @match.pgn.present? %>
+      <div class="card">
+        <h2>Record</h2>
+        <pre><%= @match.pgn %></pre>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var boardEl = document.getElementById("chess-board");
+    if (!boardEl) return;
+
+    var statusEl = document.getElementById("match-status");
+    var resultEl = document.getElementById("match-result");
+    var moveListEl = document.getElementById("move-list");
+    var matchId = "<%= @match.id %>";
+
+    var pieceMap = {
+      "p": "♟",
+      "r": "♜",
+      "n": "♞",
+      "b": "♝",
+      "q": "♛",
+      "k": "♚",
+      "P": "♙",
+      "R": "♖",
+      "N": "♘",
+      "B": "♗",
+      "Q": "♕",
+      "K": "♔"
+    };
+
+    function renderBoard(fen) {
+      if (!fen) return;
+      var rows = fen.split(" ")[0].split("/");
+      boardEl.innerHTML = "";
+      rows.forEach(function (row, rowIndex) {
+        var colIndex = 0;
+        row.split("").forEach(function (char) {
+          if (Number.isInteger(parseInt(char, 10))) {
+            var emptyCount = parseInt(char, 10);
+            for (var i = 0; i < emptyCount; i++) {
+              addSquare(rowIndex, colIndex, "");
+              colIndex += 1;
+            }
+          } else {
+            addSquare(rowIndex, colIndex, pieceMap[char] || "");
+            colIndex += 1;
+          }
+        });
+      });
+    }
+
+    function addSquare(row, col, content) {
+      var square = document.createElement("div");
+      square.className = "chess-square " + ((row + col) % 2 === 0 ? "light" : "dark");
+      square.textContent = content;
+      boardEl.appendChild(square);
+    }
+
+    function renderMoves(moves) {
+      if (!moveListEl) return;
+      moveListEl.innerHTML = "";
+      moves.forEach(function (move) {
+        var item = document.createElement("li");
+        item.innerHTML = "<strong>" + move.actor + "</strong> " + move.notation + " (" + move.display + ")";
+        moveListEl.appendChild(item);
+      });
+    }
+
+    function fetchMatch() {
+      fetch("/matches/" + matchId + ".json")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          renderBoard(data.current_state);
+          renderMoves(data.moves || []);
+          if (statusEl) statusEl.textContent = data.status || "";
+          if (resultEl) resultEl.textContent = data.result || "*";
+        })
+        .catch(function () {});
+    }
+
+    renderBoard(boardEl.dataset.fen);
+    setInterval(fetchMatch, 4000);
+  })();
+</script>
