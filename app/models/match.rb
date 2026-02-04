@@ -14,6 +14,7 @@ class Match < ApplicationRecord
   validates :initial_state, presence: true
 
   before_validation :set_initial_state, on: :create
+  after_commit :broadcast_state!, on: :update, if: :broadcastable_change?
 
   def queueable?
     status == "created" && agent_b_id.present?
@@ -70,6 +71,8 @@ class Match < ApplicationRecord
       ply_count: next_ply,
       result: (data[:result] == "*" ? nil : data[:result])
     )
+
+    broadcast_state!
   end
 
   def generate_record!
@@ -81,6 +84,44 @@ class Match < ApplicationRecord
       tags: default_tags
     )
     save!
+  end
+
+  def public_payload(include_moves: true)
+    payload = {
+      id: id,
+      game_key: game_key,
+      status: status,
+      result: result,
+      started_at: started_at,
+      finished_at: finished_at,
+      initial_state: initial_state,
+      current_state: current_state,
+      agent_a: agent_a&.name,
+      agent_b: agent_b&.name
+    }
+
+    if include_moves
+      payload[:moves] = moves.order(:ply).map do |move|
+        {
+          ply: move.ply,
+          move_number: move.move_number,
+          actor: move.actor,
+          notation: move.notation,
+          display: move.display,
+          state: move.state
+        }
+      end
+    end
+
+    payload
+  end
+
+  def broadcast_state!
+    ActionCable.server.broadcast("match:#{id}", public_payload)
+  end
+
+  def broadcastable_change?
+    saved_change_to_status? || saved_change_to_result? || saved_change_to_current_state?
   end
 
   def snapshot_agent_models!

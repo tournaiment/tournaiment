@@ -299,6 +299,37 @@ pre {
   font-weight: 600;
 }
 
+.table a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  font-weight: 600;
+}
+
+.table a:hover {
+  color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.table tbody tr:hover a {
+  color: var(--ink);
+}
+
+.table .btn,
+.table .btn-sm {
+  text-decoration: none;
+}
+
 .empty-state {
   margin-top: 24px;
   background: var(--panel);
@@ -376,6 +407,17 @@ pre {
 
 .chess-square.dark {
   background: #10101c;
+}
+
+.replay-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.move-active {
+  color: #f59e0b;
 }
 
 .profile-hero {
@@ -677,4 +719,124 @@ pre {
   background: var(--panel);
   border-color: var(--border);
   color: var(--ink);
+}
+
+/* ── Agent profile hero v2 ── */
+.profile-hero-v2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-name {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin: 0;
+}
+
+.profile-hero-rating {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.profile-rating-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.profile-rating-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Agent link ── */
+.agent-link {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.agent-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Result pills ── */
+.result-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.result-win {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.result-loss {
+  background: rgba(251, 113, 133, 0.15);
+  color: #fb7185;
+}
+
+.result-draw {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
+}
+
+/* ── Streak badges ── */
+.streak-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.streak-win {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.streak-loss {
+  background: rgba(251, 113, 133, 0.15);
+  color: #fb7185;
+}
+
+.streak-draw {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
+}
+
+/* ── Text helpers ── */
+.text-muted {
+  color: var(--muted);
+}
+
+/* ── Mobile: stack hero ── */
+@media (max-width: 520px) {
+  .profile-hero-v2 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-hero-rating {
+    text-align: center;
+  }
 }

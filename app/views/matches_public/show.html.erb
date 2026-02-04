@@ -5,9 +5,10 @@
       <p>
         <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
         <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
-  <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
-  <strong>Status:</strong> <span id="match-status"><%= @match.status.to_s.humanize %></span><br />
-        <strong>Result:</strong> <span id="match-result"><%= @match.result || "*" %></span>
+        <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
+        <strong>Status:</strong> <span id="match-status"><%= @match.status.to_s.humanize %></span><br />
+        <strong>Result:</strong> <span id="match-result"><%= @match.result || "*" %></span><br />
+        <strong>Spectators:</strong> <span id="spectator-count">-</span>
       </p>
     </div>
 
@@ -16,6 +17,13 @@
         <div class="card">
           <h2>Board</h2>
           <div class="chess-board" id="chess-board" data-fen="<%= @match.current_state %>"></div>
+          <div class="replay-controls">
+            <button class="btn btn-secondary btn-sm" type="button" data-action="start">Start</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="prev">Prev</button>
+            <button class="btn btn-primary btn-sm" type="button" data-action="play">Play</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="next">Next</button>
+            <button class="btn btn-secondary btn-sm" type="button" data-action="end">End</button>
+          </div>
         </div>
         <div class="card">
           <h2>Moves</h2>
@@ -62,6 +70,7 @@
     var statusEl = document.getElementById("match-status");
     var resultEl = document.getElementById("match-result");
     var moveListEl = document.getElementById("move-list");
+    var spectatorEl = document.getElementById("spectator-count");
     var matchId = "<%= @match.id %>";
 
     var pieceMap = {
@@ -78,6 +87,16 @@
       "Q": "♕",
       "K": "♔"
     };
+
+    var state = {
+      initial: "<%= @match.initial_state %>",
+      moves: <%= @moves.map { |m| { state: m.state, actor: m.actor, notation: m.notation, display: m.display } }.to_json %>,
+      current: "<%= @match.current_state %>"
+    };
+
+    var currentIndex = state.moves.length;
+    var timer = null;
+    var playBtn = document.querySelector(".replay-controls button[data-action='play']");
 
     function renderBoard(fen) {
       if (!fen) return;
@@ -110,26 +129,84 @@
     function renderMoves(moves) {
       if (!moveListEl) return;
       moveListEl.innerHTML = "";
-      moves.forEach(function (move) {
+      moves.forEach(function (move, index) {
         var item = document.createElement("li");
+        if (index === currentIndex - 1) item.classList.add("move-active");
         item.innerHTML = "<strong>" + move.actor + "</strong> " + move.notation + " (" + move.display + ")";
         moveListEl.appendChild(item);
       });
     }
 
+    function setIndex(index) {
+      currentIndex = Math.max(0, Math.min(index, state.moves.length));
+      var fen = currentIndex === 0 ? state.initial : state.moves[currentIndex - 1].state;
+      renderBoard(fen);
+      renderMoves(state.moves);
+    }
+
+    function play() {
+      if (timer) return;
+      if (playBtn) playBtn.textContent = "Pause";
+      timer = setInterval(function () {
+        if (currentIndex >= state.moves.length) return pause();
+        setIndex(currentIndex + 1);
+      }, 700);
+    }
+
+    function pause() {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = null;
+      if (playBtn) playBtn.textContent = "Play";
+    }
+
+    function updateFromPayload(data) {
+      if (!data) return;
+      state.initial = data.initial_state || state.initial;
+      state.current = data.current_state || state.current;
+      state.moves = data.moves || state.moves;
+      if (currentIndex >= state.moves.length) {
+        currentIndex = state.moves.length;
+      }
+      setIndex(currentIndex);
+      if (statusEl) statusEl.textContent = (data.status || "").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+      if (resultEl) resultEl.textContent = data.result || "*";
+    }
+
     function fetchMatch() {
       fetch("/matches/" + matchId + ".json")
         .then(function (res) { return res.json(); })
-        .then(function (data) {
-          renderBoard(data.current_state);
-          renderMoves(data.moves || []);
-          if (statusEl) statusEl.textContent = (data.status || "").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-          if (resultEl) resultEl.textContent = data.result || "*";
-        })
+        .then(function (data) { updateFromPayload(data); })
         .catch(function () {});
     }
 
+    document.querySelectorAll(".replay-controls button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var action = btn.dataset.action;
+        if (action === "start") { pause(); setIndex(0); }
+        if (action === "prev") { pause(); setIndex(currentIndex - 1); }
+        if (action === "play") { timer ? pause() : play(); }
+        if (action === "next") { pause(); setIndex(currentIndex + 1); }
+        if (action === "end") { pause(); setIndex(state.moves.length); }
+      });
+    });
+
     renderBoard(boardEl.dataset.fen);
-    setInterval(fetchMatch, 4000);
+    setIndex(state.moves.length);
+
+    var cable = window.ActionCable ? window.ActionCable.createConsumer() : null;
+    if (cable) {
+      cable.subscriptions.create({ channel: "MatchChannel", match_id: matchId }, {
+        received: function (data) {
+          if (data && data.spectators !== undefined) {
+            if (spectatorEl) spectatorEl.textContent = data.spectators;
+            return;
+          }
+          updateFromPayload(data);
+        }
+      });
+    } else {
+      setInterval(fetchMatch, 4000);
+    }
   })();
 </script>

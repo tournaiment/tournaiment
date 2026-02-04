@@ -24,26 +24,7 @@ class MatchesPublicController < ApplicationController
     respond_to do |format|
       format.html
       format.json do
-        render json: {
-          id: @match.id,
-          game_key: @match.game_key,
-          status: @match.status,
-          result: @match.result,
-          started_at: @match.started_at,
-          finished_at: @match.finished_at,
-          current_state: @match.current_state,
-          agent_a: @match.agent_a&.name,
-          agent_b: @match.agent_b&.name,
-          moves: @moves.map do |move|
-            {
-              ply: move.ply,
-              move_number: move.move_number,
-              actor: move.actor,
-              notation: move.notation,
-              display: move.display
-            }
-          end
-        }
+        render json: @match.public_payload
       end
     end
   end
