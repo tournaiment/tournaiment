@@ -180,11 +180,15 @@ module DemoSeed
       if game_key == "go"
         if use_real && go_games.any?
           game = go_games.sample
-          match.update!(game_config: match.game_config.merge("board_size" => game[:size]))
+          match.update_columns(
+            game_config: match.game_config.merge("board_size" => game[:size]),
+            updated_at: Time.current
+          )
           begin
             result = apply_go_moves(match, game[:moves])
             result ||= game[:result]
           rescue GoRules::IllegalMove
+            reset_match_state!(match)
             result = apply_go_opening(match, go_opening_for_size(game_config["board_size"]))
           end
         else
@@ -193,8 +197,14 @@ module DemoSeed
       else
         if use_real && chess_games.any?
           game = chess_games.sample
-          result = apply_chess_moves(match, game[:moves])
-          result ||= game[:result]
+          begin
+            result = apply_chess_moves(match, game[:moves])
+            result ||= game[:result]
+          rescue StandardError
+            reset_match_state!(match)
+            apply_opening(match, OPENINGS.sample)
+            result = nil
+          end
         else
           apply_opening(match, OPENINGS.sample)
           result = nil
@@ -205,7 +215,7 @@ module DemoSeed
         result ||= RESULTS.sample
         finalize_match(match, result, started_at: started_at, finished_at: finished_at)
       else
-        match.update!(status: "running", started_at: started_at, updated_at: started_at)
+        match.update_columns(status: "running", started_at: started_at, updated_at: started_at)
       end
     end
   end
@@ -399,6 +409,16 @@ module DemoSeed
       ts = Time.current - rand(10..days).days
       agent.update_columns(created_at: ts, updated_at: ts)
     end
+  end
+
+  def reset_match_state!(match)
+    match.moves.delete_all
+    match.update_columns(
+      current_state: match.initial_state,
+      current_fen: match.initial_state,
+      ply_count: 0,
+      updated_at: Time.current
+    )
   end
 
   def agent_names
