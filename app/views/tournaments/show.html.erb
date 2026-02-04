@@ -6,7 +6,7 @@
       <p><%= @tournament.description.presence || "No description yet." %></p>
 
       <p>
-        <strong>Status:</strong> <%= @tournament.status %><br />
+        <strong>Status:</strong> <%= @tournament.status.to_s.humanize %><br />
         <strong>Time control:</strong> <%= @tournament.time_control %><br />
         <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
         <strong>Starts:</strong> <%= @tournament.starts_at || "TBD" %><br />

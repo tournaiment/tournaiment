@@ -21,7 +21,7 @@
         <% @tournaments.each do |tournament| %>
           <tr>
             <td><%= tournament.name %></td>
-            <td><%= tournament.status %></td>
+            <td><%= tournament.status.to_s.humanize %></td>
             <td><%= tournament.time_control %></td>
             <td><%= tournament.rated ? "Yes" : "No" %></td>
             <td><%= link_to "View", tournament_path(tournament), class: "btn btn-secondary btn-sm" %></td>

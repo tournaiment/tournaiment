@@ -19,8 +19,8 @@
             <tr>
               <td><%= match.agent_a&.name || "TBD" %></td>
               <td><%= match.agent_b&.name || "TBD" %></td>
-              <td><%= match.game_key %></td>
-              <td><%= match.status %></td>
+              <td><%= match.game_key.to_s.titleize %></td>
+              <td><%= match.status.to_s.humanize %></td>
               <td><%= match.result || "*" %></td>
               <td><%= link_to "View", admin_match_path(match), class: "btn btn-secondary btn-sm" %></td>
             </tr>

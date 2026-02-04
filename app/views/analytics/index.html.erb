@@ -37,7 +37,7 @@
           <% else %>
             <% @game_stats.each do |game_key, data| %>
               <tr>
-                <td><%= game_key %></td>
+                <td><%= game_key.to_s.titleize %></td>
                 <td><%= data[:total] %></td>
                 <td><%= data[:draws] %></td>
               </tr>
@@ -71,7 +71,7 @@
           <% else %>
             <% @model_stats.each do |row| %>
               <tr>
-                <td><%= row[:game_key] %></td>
+                <td><%= row[:game_key].to_s.titleize %></td>
                 <td><%= row[:provider] %></td>
                 <td><%= row[:model_name] %></td>
                 <td><%= row[:model_version] %></td>

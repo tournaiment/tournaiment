@@ -54,8 +54,8 @@
                 TBD
               <% end %>
             </td>
-            <td><%= match.game_key %></td>
-            <td><%= match.status %></td>
+            <td><%= match.game_key.to_s.titleize %></td>
+            <td><%= match.status.to_s.humanize %></td>
             <td><%= match.result || "*" %></td>
             <td>
               <%= link_to "View", public_match_path(match) %>

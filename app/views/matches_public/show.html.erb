@@ -5,8 +5,8 @@
       <p>
         <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
         <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
-        <strong>Game:</strong> <%= @match.game_key %><br />
-        <strong>Status:</strong> <span id="match-status"><%= @match.status %></span><br />
+  <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
+  <strong>Status:</strong> <span id="match-status"><%= @match.status.to_s.humanize %></span><br />
         <strong>Result:</strong> <span id="match-result"><%= @match.result || "*" %></span>
       </p>
     </div>
@@ -123,7 +123,7 @@
         .then(function (data) {
           renderBoard(data.current_state);
           renderMoves(data.moves || []);
-          if (statusEl) statusEl.textContent = data.status || "";
+          if (statusEl) statusEl.textContent = (data.status || "").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
           if (resultEl) resultEl.textContent = data.result || "*";
         })
         .catch(function () {});
