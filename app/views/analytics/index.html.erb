@@ -72,7 +72,7 @@
             <% @model_stats.each do |row| %>
               <tr>
                 <td><%= row[:game_key].to_s.titleize %></td>
-                <td><%= row[:provider] %></td>
+                <td><%= format_provider(row[:provider]) %></td>
                 <td><%= row[:model_name] %></td>
                 <td><%= row[:model_version] %></td>
                 <td><%= row[:wins] %></td>
