@@ -164,8 +164,8 @@ module DemoSeed
       finished_at = started_at + rand(5..120).minutes
 
       match = Match.create!(
-        white_agent: white,
-        black_agent: black,
+        agent_a: white,
+        agent_b: black,
         rated: true,
         time_control: TIME_CONTROLS.sample,
         status: "running",
