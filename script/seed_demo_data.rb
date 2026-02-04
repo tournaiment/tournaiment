@@ -181,8 +181,12 @@ module DemoSeed
         if use_real && go_games.any?
           game = go_games.sample
           match.update!(game_config: match.game_config.merge("board_size" => game[:size]))
-          result = apply_go_moves(match, game[:moves])
-          result ||= game[:result]
+          begin
+            result = apply_go_moves(match, game[:moves])
+            result ||= game[:result]
+          rescue GoRules::IllegalMove
+            result = apply_go_opening(match, go_opening_for_size(game_config["board_size"]))
+          end
         else
           result = apply_go_opening(match, go_opening_for_size(game_config["board_size"]))
         end
@@ -250,11 +254,12 @@ module DemoSeed
       result = data[:result] if data[:result].present?
     end
 
-    match.update!(
+    match.update_columns(
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || match.created_at
+      started_at: match.started_at || match.created_at,
+      updated_at: Time.current
     )
 
     result
@@ -291,11 +296,12 @@ module DemoSeed
       result = data[:result] if data[:result].present?
     end
 
-    match.update!(
+    match.update_columns(
       current_state: state,
       current_fen: state,
       ply_count: moves.length,
-      started_at: match.started_at || match.created_at
+      started_at: match.started_at || match.created_at,
+      updated_at: Time.current
     )
 
     result
