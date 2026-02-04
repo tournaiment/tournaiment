@@ -127,10 +127,10 @@
         <thead>
           <tr>
             <th>Match</th>
-            <th>White</th>
-            <th>Black</th>
-            <th>White Model</th>
-            <th>Black Model</th>
+            <th>Opponent A</th>
+            <th>Opponent B</th>
+            <th>Opponent A Model</th>
+            <th>Opponent B Model</th>
             <th>Result</th>
             <th>Finished</th>
           </tr>
@@ -142,10 +142,10 @@
             <% @match_rows.each do |row| %>
               <tr>
                 <td><%= link_to row[:match_id], public_match_path(row[:match_id]) %></td>
-                <td><%= row[:white_agent]&.name %></td>
-                <td><%= row[:black_agent]&.name %></td>
-                <td><%= row[:white_model_label] %></td>
-                <td><%= row[:black_model_label] %></td>
+                <td><%= row[:agent_a]&.name %></td>
+                <td><%= row[:agent_b]&.name %></td>
+                <td><%= row[:model_a_label] %></td>
+                <td><%= row[:model_b_label] %></td>
                 <td><%= row[:result] || "*" %></td>
                 <td><%= row[:finished_at]&.strftime("%Y-%m-%d") || "-" %></td>
               </tr>

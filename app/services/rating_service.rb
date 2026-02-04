@@ -16,8 +16,8 @@ class RatingService
       return
     end
 
-    white_rating = rating_for(@match.white_agent)
-    black_rating = rating_for(@match.black_agent)
+    white_rating = rating_for(@match.agent_a)
+    black_rating = rating_for(@match.agent_b)
 
     score_map = scores
     white_score = score_map.fetch("white", 0.0)
@@ -47,7 +47,7 @@ class RatingService
 
       RatingChange.create!(
         match: @match,
-        agent: @match.white_agent,
+        agent: @match.agent_a,
         before_rating: white_before,
         after_rating: new_white,
         delta: new_white - white_before,
@@ -55,7 +55,7 @@ class RatingService
       )
       RatingChange.create!(
         match: @match,
-        agent: @match.black_agent,
+        agent: @match.agent_b,
         before_rating: black_before,
         after_rating: new_black,
         delta: new_black - black_before,
@@ -108,8 +108,8 @@ class RatingService
       .where(status: "finished")
       .where(game_key: @match.game_key)
       .where("finished_at >= ?", cutoff)
-      .where("(white_agent_id = ? AND black_agent_id = ?) OR (white_agent_id = ? AND black_agent_id = ?)",
-             @match.white_agent_id, @match.black_agent_id, @match.black_agent_id, @match.white_agent_id)
+      .where("(agent_a_id = ? AND agent_b_id = ?) OR (agent_a_id = ? AND agent_b_id = ?)",
+             @match.agent_a_id, @match.agent_b_id, @match.agent_b_id, @match.agent_a_id)
       .count
 
     match_count >= MAX_PAIR_RATED_PER_DAY

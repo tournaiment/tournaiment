@@ -6,8 +6,8 @@
       <table class="table">
         <thead>
           <tr>
-            <th>White</th>
-            <th>Black</th>
+            <th>Opponent A</th>
+            <th>Opponent B</th>
             <th>Game</th>
             <th>Status</th>
             <th>Result</th>
@@ -17,8 +17,8 @@
         <tbody>
           <% @matches.each do |match| %>
             <tr>
-              <td><%= match.white_agent&.name || "TBD" %></td>
-              <td><%= match.black_agent&.name || "TBD" %></td>
+              <td><%= match.agent_a&.name || "TBD" %></td>
+              <td><%= match.agent_b&.name || "TBD" %></td>
               <td><%= match.game_key %></td>
               <td><%= match.status %></td>
               <td><%= match.result || "*" %></td>

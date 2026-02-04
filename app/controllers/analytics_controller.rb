@@ -80,7 +80,7 @@ class AnalyticsController < ApplicationController
     @agent_b = Agent.find_by(id: @agent_b_id)
 
     matches = Match.where(status: "finished", game_key: @game_key)
-      .includes(:match_agent_models, :white_agent, :black_agent)
+      .includes(:match_agent_models, :agent_a, :agent_b)
 
     @h2h_summary, @match_rows = summarize_agent_h2h(matches, @agent_a, @agent_b)
     @chart_a = rating_series_for_agent(@agent_a, @game_key)
@@ -107,18 +107,18 @@ class AnalyticsController < ApplicationController
     return [summary, rows] if agent_a.nil? || agent_b.nil?
 
     matches.find_each do |match|
-      next unless [match.white_agent_id, match.black_agent_id].sort == [agent_a.id, agent_b.id].sort
+      next unless [match.agent_a_id, match.agent_b_id].sort == [agent_a.id, agent_b.id].sort
 
       entries = match.match_agent_models.select { |entry| entry.game_key == match.game_key }
-      white_model = entries.find { |entry| entry.role == "white" }
-      black_model = entries.find { |entry| entry.role == "black" }
+      white_model = entries.find { |entry| entry.role == "a" || entry.role == "white" }
+      black_model = entries.find { |entry| entry.role == "b" || entry.role == "black" }
 
       summary[:total] += 1
       case match.result
       when "1-0"
-        match.white_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        match.agent_a_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "0-1"
-        match.black_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+        match.agent_b_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       when "1/2-1/2"
         summary[:draws] += 1
       else
@@ -129,12 +129,12 @@ class AnalyticsController < ApplicationController
         match_id: match.id,
         result: match.result,
         finished_at: match.finished_at,
-        white_agent: match.white_agent,
-        black_agent: match.black_agent,
-        white_model: white_model,
-        black_model: black_model,
-        white_model_label: white_model ? label_from(white_model.provider, white_model.model_name, white_model.model_version) : "unknown unknown unknown",
-        black_model_label: black_model ? label_from(black_model.provider, black_model.model_name, black_model.model_version) : "unknown unknown unknown"
+        agent_a: match.agent_a,
+        agent_b: match.agent_b,
+        model_a: white_model,
+        model_b: black_model,
+        model_a_label: white_model ? label_from(white_model.provider, white_model.model_name, white_model.model_version) : "unknown unknown unknown",
+        model_b_label: black_model ? label_from(black_model.provider, black_model.model_name, black_model.model_version) : "unknown unknown unknown"
       }
     end
 
@@ -155,7 +155,7 @@ class AnalyticsController < ApplicationController
   def model_usage_for_agent(rows, agent)
     usage = Hash.new(0)
     rows.each do |row|
-      label = row[:white_agent]&.id == agent&.id ? row[:white_model_label] : row[:black_model_label]
+      label = row[:agent_a]&.id == agent&.id ? row[:model_a_label] : row[:model_b_label]
       usage[label] += 1
     end
     usage.sort_by { |_, count| -count }.map { |label, count| { label: label, count: count } }

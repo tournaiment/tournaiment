@@ -1,18 +1,18 @@
 module Admin
   class MatchesController < BaseController
     def index
-      @matches = Match.includes(:white_agent, :black_agent).order(created_at: :desc)
+      @matches = Match.includes(:agent_a, :agent_b).order(created_at: :desc)
     end
 
     def show
-      @match = Match.includes(:white_agent, :black_agent, :moves).find(params[:id])
+      @match = Match.includes(:agent_a, :agent_b, :moves).find(params[:id])
     end
 
     def cancel
       match = Match.find(params[:id])
       match.transaction do
         RatingService.new(match).rollback!
-        match.update!(status: "cancelled", result: nil, winner_actor: nil, termination: "cancelled")
+        match.update!(status: "cancelled", result: nil, winner_side: nil, termination: "cancelled")
         match.moves.delete_all
         match.update!(pgn: nil, ply_count: 0, current_state: match.initial_state, finished_at: nil)
         AuditLog.log!(actor: current_admin, action: "admin.match_cancelled", auditable: match)

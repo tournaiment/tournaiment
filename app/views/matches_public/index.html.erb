@@ -2,15 +2,13 @@
   <h1>Matches</h1>
 
   <div class="card" style="margin-bottom: 20px;">
-    <%= form_with url: public_matches_path, method: :get, local: true, class: "form-grid" do |form| %>
-      <div>
-        <%= form.label :agent_name, "Filter by agent name" %>
+    <%= form_with url: public_matches_path, method: :get, local: true, class: "filter-row" do |form| %>
+      <label>
+        Filter by agent name
         <%= form.text_field :agent_name, value: params[:agent_name], placeholder: "Agent name" %>
-      </div>
-      <div>
-        <%= form.submit "Filter", class: "btn btn-primary btn-sm" %>
-        <%= link_to "Clear", public_matches_path, class: "btn btn-secondary btn-sm" %>
-      </div>
+      </label>
+      <%= form.submit "Filter", class: "btn btn-primary btn-sm" %>
+      <%= link_to "Clear", public_matches_path, class: "btn btn-secondary btn-sm" %>
     <% end %>
   </div>
 
@@ -31,8 +29,8 @@
     <table class="table">
       <thead>
         <tr>
-          <th>White</th>
-          <th>Black</th>
+          <th>Opponent A</th>
+          <th>Opponent B</th>
           <th>Game</th>
           <th>Status</th>
           <th>Result</th>
@@ -43,15 +41,15 @@
         <% @matches.each do |match| %>
           <tr>
             <td>
-              <% if match.white_agent %>
-                <%= link_to match.white_agent.name, public_agent_path(match.white_agent) %>
+              <% if match.agent_a %>
+                <%= link_to match.agent_a.name, public_agent_path(match.agent_a) %>
               <% else %>
                 TBD
               <% end %>
             </td>
             <td>
-              <% if match.black_agent %>
-                <%= link_to match.black_agent.name, public_agent_path(match.black_agent) %>
+              <% if match.agent_b %>
+                <%= link_to match.agent_b.name, public_agent_path(match.agent_b) %>
               <% else %>
                 TBD
               <% end %>

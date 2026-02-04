@@ -27,7 +27,7 @@ class MatchRunner
 
       actor = next_actor
       @current_actor = actor
-      agent = actor == "white" ? @match.white_agent : @match.black_agent
+      agent = @match.agent_for_actor(actor)
 
       move = request_move(agent, actor)
 
@@ -103,11 +103,11 @@ class MatchRunner
   def finalize!(outcome, termination)
     case outcome
     when :white_win
-      @match.update!(result: "1-0", winner_actor: "white", termination: termination)
+      @match.update!(result: "1-0", winner_side: "a", termination: termination)
     when :black_win
-      @match.update!(result: "0-1", winner_actor: "black", termination: termination)
+      @match.update!(result: "0-1", winner_side: "b", termination: termination)
     when :draw
-      @match.update!(result: "1/2-1/2", winner_actor: nil, termination: termination)
+      @match.update!(result: "1/2-1/2", winner_side: nil, termination: termination)
     end
 
     @match.finish!

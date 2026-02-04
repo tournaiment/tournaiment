@@ -1,15 +1,118 @@
 <section class="section">
   <div class="container stack">
-    <h1><%= @agent.name %></h1>
+    <div class="profile-hero">
+      <div>
+        <h1><%= @agent.name %></h1>
+        <p class="subheading"><%= @agent.description.presence || "No description yet." %></p>
+      </div>
+      <div class="profile-badges">
+        <span class="badge">Agent</span>
+        <% if @models.present? %>
+          <span class="badge badge-accent"><%= @models.keys.join(" / ").upcase %></span>
+        <% end %>
+      </div>
+    </div>
 
-    <div class="card stack">
-      <p><%= @agent.description.presence || "No description yet." %></p>
+    <div class="profile-grid">
+      <div class="card stack">
+        <h2>Overview</h2>
+        <div class="stat-grid">
+          <div>
+            <div class="stat-label">Chess Rating</div>
+            <div class="stat-value"><%= @rating ? @rating.current : "Unrated" %></div>
+          </div>
+          <div>
+            <div class="stat-label">Games Played</div>
+            <div class="stat-value"><%= @overall_stats[:total] %></div>
+          </div>
+          <div>
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value"><%= number_to_percentage(@overall_stats[:win_rate] * 100, precision: 1) %></div>
+          </div>
+          <div>
+            <div class="stat-label">Last Played</div>
+            <div class="stat-value"><%= @last_played ? l(@last_played, format: :short) : "-" %></div>
+          </div>
+          <div>
+            <div class="stat-label">Streak</div>
+            <div class="stat-value">
+              <% if @streak %>
+                <%= @streak[:count] %> <%= @streak[:type].to_s.titleize %>
+              <% else %>
+                -
+              <% end %>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Created</div>
+            <div class="stat-value"><%= l(@agent.created_at, format: :short) %></div>
+          </div>
+        </div>
+      </div>
 
-      <p>
-        <strong>Rating:</strong> <%= @rating ? @rating.current : "Unrated" %><br />
-        <strong>Games played:</strong> <%= @rating ? @rating.games_played : 0 %><br />
-        <strong>Created:</strong> <%= @agent.created_at %>
-      </p>
+      <div class="card stack">
+        <h2>Game Stats</h2>
+        <% if @stats_by_game.empty? %>
+          <p>No finished matches yet.</p>
+        <% else %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>W</th>
+                  <th>L</th>
+                  <th>D</th>
+                  <th>Win Rate</th>
+                  <th>Avg Opp Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @stats_by_game.each do |game, data| %>
+                  <tr>
+                    <td><%= game %></td>
+                    <td><%= data[:wins] %></td>
+                    <td><%= data[:losses] %></td>
+                    <td><%= data[:draws] %></td>
+                    <td><%= number_to_percentage(data[:win_rate] * 100, precision: 1) %></td>
+                    <td><%= data[:avg_opponent_rating]&.round(1) || "-" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="card stack">
+        <h2>Model Metadata</h2>
+        <% if @models.blank? %>
+          <p>No model metadata provided.</p>
+        <% else %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Provider</th>
+                  <th>Model</th>
+                  <th>Version</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @models.each do |game, model| %>
+                  <tr>
+                    <td><%= game %></td>
+                    <td><%= model["provider"] || "-" %></td>
+                    <td><%= model["model_name"] || "-" %></td>
+                    <td><%= model["model_version"] || "-" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
     </div>
 
     <div class="card">
@@ -20,8 +123,9 @@
         <table class="table">
           <thead>
             <tr>
-              <th>White</th>
-              <th>Black</th>
+            <th>Opponent A</th>
+            <th>Opponent B</th>
+              <th>Game</th>
               <th>Status</th>
               <th>Result</th>
               <th></th>
@@ -30,8 +134,9 @@
           <tbody>
             <% @recent_matches.each do |match| %>
               <tr>
-                <td><%= match.white_agent&.name || "TBD" %></td>
-                <td><%= match.black_agent&.name || "TBD" %></td>
+                <td><%= match.agent_a&.name || "TBD" %></td>
+                <td><%= match.agent_b&.name || "TBD" %></td>
+                <td><%= match.game_key %></td>
                 <td><%= match.status %></td>
                 <td><%= match.result || "*" %></td>
                 <td><%= link_to "View", public_match_path(match), class: "btn btn-secondary btn-sm" %></td>

@@ -67,6 +67,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
   end
 
   create_table "matches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agent_a_id"
+    t.uuid "agent_b_id"
     t.uuid "black_agent_id"
     t.datetime "created_at", null: false
     t.string "current_fen", default: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", null: false
@@ -88,6 +90,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.uuid "white_agent_id"
     t.string "winner_actor"
     t.string "winner_color"
+    t.string "winner_side"
+    t.index ["agent_a_id"], name: "index_matches_on_agent_a_id"
+    t.index ["agent_b_id"], name: "index_matches_on_agent_b_id"
     t.index ["created_at"], name: "index_matches_on_created_at"
     t.index ["status"], name: "index_matches_on_status"
   end
@@ -171,6 +176,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
 
   add_foreign_key "match_agent_models", "agents"
   add_foreign_key "match_agent_models", "matches"
+  add_foreign_key "matches", "agents", column: "agent_a_id"
+  add_foreign_key "matches", "agents", column: "agent_b_id"
   add_foreign_key "matches", "agents", column: "black_agent_id"
   add_foreign_key "matches", "agents", column: "white_agent_id"
   add_foreign_key "moves", "matches"

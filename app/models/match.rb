@@ -1,13 +1,13 @@
 class Match < ApplicationRecord
   STATUSES = %w[created queued running finished cancelled failed invalid].freeze
 
-  belongs_to :white_agent, class_name: "Agent", optional: true
-  belongs_to :black_agent, class_name: "Agent", optional: true
+  belongs_to :agent_a, class_name: "Agent", optional: true
+  belongs_to :agent_b, class_name: "Agent", optional: true
   has_many :moves, dependent: :destroy
   has_many :match_agent_models, dependent: :destroy
 
   validates :status, presence: true, inclusion: { in: STATUSES }
-  validates :white_agent_id, presence: true
+  validates :agent_a_id, presence: true
   validate :distinct_agents
   validates :game_key, presence: true, inclusion: { in: GameRegistry.supported_keys }
   validates :current_state, presence: true
@@ -16,7 +16,7 @@ class Match < ApplicationRecord
   before_validation :set_initial_state, on: :create
 
   def queueable?
-    status == "created" && black_agent_id.present?
+    status == "created" && agent_b_id.present?
   end
 
   def queue!
@@ -84,8 +84,8 @@ class Match < ApplicationRecord
   end
 
   def snapshot_agent_models!
-    snapshot_agent_model!(white_agent, "white") if white_agent
-    snapshot_agent_model!(black_agent, "black") if black_agent
+    snapshot_agent_model!(agent_a, "a") if agent_a
+    snapshot_agent_model!(agent_b, "b") if agent_b
   end
 
   private
@@ -98,10 +98,10 @@ class Match < ApplicationRecord
   end
 
   def distinct_agents
-    return if white_agent_id.blank? || black_agent_id.blank?
-    return if white_agent_id != black_agent_id
+    return if agent_a_id.blank? || agent_b_id.blank?
+    return if agent_a_id != agent_b_id
 
-    errors.add(:black_agent_id, "must be different from white agent")
+    errors.add(:agent_b_id, "must be different from agent a")
   end
 
   def set_initial_state
@@ -111,6 +111,23 @@ class Match < ApplicationRecord
     self.current_state = initial_state if current_state.blank?
   rescue GameRegistry::UnknownGame
     # Validation will surface unsupported games.
+  end
+
+  def agent_for_actor(actor)
+    rules = GameRegistry.fetch!(game_key)
+    return agent_a if actor == rules.actors.first
+    return agent_b if actor == rules.actors.second
+
+    nil
+  end
+
+  def actor_for_agent(agent)
+    return nil if agent.nil?
+    rules = GameRegistry.fetch!(game_key)
+    return rules.actors.first if agent.id == agent_a_id
+    return rules.actors.second if agent.id == agent_b_id
+
+    nil
   end
 
   def snapshot_agent_model!(agent, role)
@@ -139,8 +156,8 @@ class Match < ApplicationRecord
       site: "Tournaiment",
       date: created_at || Time.current,
       round: "1",
-      white: white_agent&.name || "White",
-      black: black_agent&.name || "Black"
+      white: agent_a&.name || "White",
+      black: agent_b&.name || "Black"
     }
   end
 end

@@ -2,8 +2,8 @@
   <h1>Match Replay</h1>
 
   <p>
-    <strong>White:</strong> <%= @match.white_agent&.name || "TBD" %><br />
-    <strong>Black:</strong> <%= @match.black_agent&.name || "TBD" %><br />
+  <strong>Opponent A:</strong> <%= @match.agent_a&.name || "TBD" %><br />
+  <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
     <strong>Game:</strong> <%= @match.game_key %><br />
     <strong>Status:</strong> <%= @match.status %><br />
     <strong>Result:</strong> <%= @match.result || "*" %>
