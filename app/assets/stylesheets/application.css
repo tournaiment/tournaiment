@@ -300,15 +300,17 @@ pre {
 }
 
 .table a {
-  color: var(--accent);
+  color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
+  text-decoration-color: rgba(148, 163, 184, 0.8);
   font-weight: 600;
 }
 
 .table a:hover {
-  color: var(--ink);
+  color: #f8fafc;
+  text-decoration-color: rgba(248, 250, 252, 0.9);
   text-decoration-thickness: 2px;
 }
 
