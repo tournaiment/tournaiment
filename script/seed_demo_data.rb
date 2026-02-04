@@ -4,7 +4,7 @@
 require_relative "../config/environment"
 
 module DemoSeed
-  AGENT_NAMES = [
+  BASE_AGENT_NAMES = [
     "NeonRook",
     "QuantumBishop",
     "CipherKnight",
@@ -17,6 +17,16 @@ module DemoSeed
     "PulseArray",
     "SpecterLine",
     "NovaGrid"
+  ].freeze
+
+  AGENT_PREFIXES = %w[
+    Neon Quantum Cipher Plasma Void Signal Vector Arc Echo Specter Nova
+    Flux Drift Lumen Apex Orbit Pulse Vanta Aurora Helix Ion
+  ].freeze
+
+  AGENT_SUFFIXES = %w[
+    Rook Bishop Knight Queen Pawn Lancer Monk Array Forge Grid Line
+    Circuit Anchor Prism Relay Bastion Rift Spark Sentinel Weave
   ].freeze
 
   OPENINGS = [
@@ -97,7 +107,7 @@ module DemoSeed
   end
 
   def seed_agents
-    AGENT_NAMES.each_with_index do |name, idx|
+    agent_names.each_with_index do |name, idx|
       agent = Agent.find_or_initialize_by(name: name)
 
       model = MODEL_POOL[idx % MODEL_POOL.length]
@@ -128,19 +138,25 @@ module DemoSeed
   end
 
   def seed_matches
-    agents = Agent.where(name: AGENT_NAMES).order(:created_at).to_a
+    agents = Agent.where(name: agent_names).order(:created_at).to_a
     return if agents.length < 2
     target = (ENV["SEED_MATCHES"] || "1000").to_i
     finished_cutoff = (target * 0.85).to_i
+    chess_games = load_chess_pgn_games
+    go_games = load_go_sgf_games
+    real_ratio = (ENV["SEED_REAL_GAMES_RATIO"] || "0.45").to_f.clamp(0.0, 1.0)
 
     target.times do |i|
       white = agents.sample
       black = (agents - [white]).sample
       game_key = ["chess", "go"].sample
-      game_config = if game_key == "go"
-        { "board_size" => [9, 13, 19].sample, "ruleset" => "chinese" }
+      use_real = rand < real_ratio
+      if game_key == "go" && use_real && go_games.any?
+        game_config = { "board_size" => go_games.sample[:size], "ruleset" => "chinese" }
+      elsif game_key == "go"
+        game_config = { "board_size" => [9, 13, 19].sample, "ruleset" => "chinese" }
       else
-        {}
+        game_config = {}
       end
 
       match_created_at = random_past_time
@@ -162,10 +178,23 @@ module DemoSeed
       match.snapshot_agent_models!
 
       if game_key == "go"
-        result = apply_go_opening(match, go_opening_for_size(game_config["board_size"]))
+        if use_real && go_games.any?
+          game = go_games.sample
+          match.update!(game_config: match.game_config.merge("board_size" => game[:size]))
+          result = apply_go_moves(match, game[:moves])
+          result ||= game[:result]
+        else
+          result = apply_go_opening(match, go_opening_for_size(game_config["board_size"]))
+        end
       else
-        apply_opening(match, OPENINGS.sample)
-        result = nil
+        if use_real && chess_games.any?
+          game = chess_games.sample
+          result = apply_chess_moves(match, game[:moves])
+          result ||= game[:result]
+        else
+          apply_opening(match, OPENINGS.sample)
+          result = nil
+        end
       end
 
       if i < finished_cutoff
@@ -189,36 +218,7 @@ module DemoSeed
   end
 
   def apply_opening(match, moves)
-    state = match.initial_state
-    moves.each_with_index do |uci, idx|
-      actor = ChessRules.actor_for_ply(idx)
-      data = ChessRules.apply_move(state: state, move: uci, actor: actor)
-      state = data[:state]
-      ply = idx + 1
-      move_number = ChessRules.turn_number_for_ply(ply)
-
-      Move.create!(
-        match: match,
-        ply: ply,
-        move_number: move_number,
-        actor: actor,
-        notation: uci,
-        display: data[:display],
-        state: data[:state],
-        color: actor,
-        uci: uci,
-        san: data[:display],
-        fen: data[:state],
-        created_at: match.created_at + (idx + 1).minutes
-      )
-    end
-
-    match.update!(
-      current_state: state,
-      current_fen: state,
-      ply_count: moves.length,
-      started_at: match.started_at || match.created_at
-    )
+    apply_chess_moves(match, moves)
   end
 
   def apply_go_opening(match, moves)
@@ -257,6 +257,90 @@ module DemoSeed
       current_fen: state,
       ply_count: moves.length,
       started_at: match.started_at || match.created_at
+    )
+
+    result
+  end
+
+  def apply_chess_moves(match, moves)
+    state = match.initial_state
+    result = nil
+    status = "running"
+
+    moves.each_with_index do |move, idx|
+      actor = ChessRules.actor_for_ply(idx)
+      data = ChessRules.apply_move(state: state, move: move, actor: actor)
+      state = data[:state]
+      ply = idx + 1
+      move_number = ChessRules.turn_number_for_ply(ply)
+
+      Move.create!(
+        match: match,
+        ply: ply,
+        move_number: move_number,
+        actor: actor,
+        notation: move,
+        display: data[:display],
+        state: data[:state],
+        color: actor,
+        uci: move,
+        san: data[:display],
+        fen: data[:state],
+        created_at: match.created_at + (idx + 1).minutes
+      )
+
+      status = data[:status] || status
+      result = data[:result] if data[:result].present?
+    end
+
+    match.update!(
+      current_state: state,
+      current_fen: state,
+      ply_count: moves.length,
+      started_at: match.started_at || match.created_at,
+      status: status
+    )
+
+    result
+  end
+
+  def apply_go_moves(match, moves)
+    state = match.initial_state
+    result = nil
+    status = "running"
+
+    moves.each_with_index do |move, idx|
+      actor = GoRules.actor_for_ply(idx)
+      data = GoRules.apply_move(state: state, move: move, actor: actor)
+      state = data[:state]
+      ply = idx + 1
+      move_number = GoRules.turn_number_for_ply(ply)
+
+      Move.create!(
+        match: match,
+        ply: ply,
+        move_number: move_number,
+        actor: actor,
+        notation: move,
+        display: data[:display],
+        state: data[:state],
+        color: actor,
+        uci: move,
+        san: data[:display],
+        fen: data[:state],
+        created_at: match.created_at + (idx + 1).minutes
+      )
+
+      status = data[:status] || status
+      result = data[:result] if data[:result].present?
+    end
+
+    match.update!(
+      current_state: state,
+      current_fen: state,
+      ply_count: moves.length,
+      started_at: match.started_at || match.created_at,
+      status: status
     )
 
     result
@@ -301,12 +385,144 @@ module DemoSeed
 
   def backdate_agents
     days = (ENV["SEED_BACKDATE_DAYS"] || "120").to_i
-    Agent.where(name: AGENT_NAMES).find_each do |agent|
+    Agent.where(name: agent_names).find_each do |agent|
       next if agent.created_at < Time.current - 1.day
 
       ts = Time.current - rand(10..days).days
       agent.update_columns(created_at: ts, updated_at: ts)
     end
+  end
+
+  def agent_names
+    target = (ENV["SEED_AGENTS"] || "24").to_i
+    names = BASE_AGENT_NAMES.dup
+    return names.first(target) if target <= names.length
+
+    used = names.to_h { |name| [name, true] }
+    while names.length < target
+      prefix = AGENT_PREFIXES.sample
+      suffix = AGENT_SUFFIXES.sample
+      candidate = "#{prefix}#{suffix}"
+      next if used[candidate]
+
+      used[candidate] = true
+      names << candidate
+    end
+    names
+  end
+
+  def load_chess_pgn_games
+    files = Dir.glob(File.join(__dir__, "..", "db", "seed_games", "chess", "*.pgn")).sort
+    games = []
+    limit = (ENV["SEED_REAL_CHESS_LIMIT"] || ENV["SEED_REAL_LIMIT"] || "1000").to_i
+    files.each do |path|
+      content = File.read(path)
+      parse_pgn_games(content).each do |game|
+        next if game[:moves].empty?
+
+        games << { moves: game[:moves], result: game[:headers]["Result"] }
+        return games if games.length >= limit
+      end
+    end
+    games
+  end
+
+  def parse_pgn_games(content)
+    games = []
+    headers = {}
+    move_lines = []
+
+    content.each_line do |line|
+      stripped = line.strip
+      if stripped.start_with?("[")
+        if headers.any? || move_lines.any?
+          games << { headers: headers, moves: parse_pgn_moves(move_lines) }
+          headers = {}
+          move_lines = []
+        end
+        if stripped.match(/\A\[(\w+)\s+\"(.*)\"\]\z/)
+          headers[Regexp.last_match(1)] = Regexp.last_match(2)
+        end
+      elsif stripped.empty?
+        if move_lines.any?
+          games << { headers: headers, moves: parse_pgn_moves(move_lines) }
+          headers = {}
+          move_lines = []
+        end
+      else
+        move_lines << stripped
+      end
+    end
+
+    if headers.any? || move_lines.any?
+      games << { headers: headers, moves: parse_pgn_moves(move_lines) }
+    end
+
+    games
+  end
+
+  def parse_pgn_moves(move_lines)
+    moves_text = move_lines.join(" ")
+    moves_text = moves_text.gsub(/\{[^}]*\}/, " ")
+    moves_text = moves_text.gsub(/;[^\n]*/, " ")
+    loop do
+      stripped = moves_text.gsub(/\([^()]*\)/, " ")
+      break if stripped == moves_text
+
+      moves_text = stripped
+    end
+    moves_text = moves_text.gsub(/\d+\.(\.\.)?/, " ")
+    moves_text = moves_text.gsub(/\$\d+/, " ")
+    tokens = moves_text.split(/\s+/).reject(&:empty?)
+    tokens.reject! { |token| %w[1-0 0-1 1/2-1/2 *].include?(token) }
+
+    tokens
+  end
+
+  def load_go_sgf_games
+    files = Dir.glob(File.join(__dir__, "..", "db", "seed_games", "go", "**", "*.sgf")).sort
+    games = []
+    limit = (ENV["SEED_REAL_GO_LIMIT"] || ENV["SEED_REAL_LIMIT"] || "1000").to_i
+    files.each do |path|
+      content = File.read(path)
+      size = content[/SZ\[(\d+)\]/, 1].to_i
+      size = 19 if size.zero?
+      next unless [9, 13, 19].include?(size)
+
+      result_tag = content[/RE\[([^\]]+)\]/, 1]
+      result = sgf_result_to_match(result_tag)
+      moves = content.scan(/;[BW]\[([a-z]{0,2})\]/).flatten.map do |coord|
+        sgf_to_gtp(coord, size)
+      end.compact
+      next if moves.empty?
+
+      games << { moves: moves, size: size, result: result }
+      return games if games.length >= limit
+    end
+    games
+  end
+
+  def sgf_to_gtp(coord, size)
+    return "pass" if coord.blank?
+    return nil unless coord.length == 2
+
+    col_idx = coord[0].ord - "a".ord
+    row_idx = coord[1].ord - "a".ord
+    return nil if col_idx.negative? || row_idx.negative?
+    return nil if col_idx >= size || row_idx >= size
+
+    col_letter = GoRules.gtp_columns[col_idx]
+    row = size - row_idx
+    "#{col_letter}#{row}"
+  end
+
+  def sgf_result_to_match(result_tag)
+    return nil if result_tag.blank?
+    return "1-0" if result_tag.start_with?("W+")
+    return "0-1" if result_tag.start_with?("B+")
+    return "1/2-1/2" if result_tag.include?("0") || result_tag.include?("Draw")
+
+    nil
   end
 end
 
