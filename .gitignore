@@ -33,3 +33,9 @@
 
 # Ignore key files for decrypting credentials and more.
 /config/*.key
+
+# Local-only demo game seeds
+/db/seed_games/*
+
+# OS metadata
+.DS_Store
