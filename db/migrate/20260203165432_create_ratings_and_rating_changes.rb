@@ -16,6 +16,6 @@ class CreateRatingsAndRatingChanges < ActiveRecord::Migration[8.1]
       t.integer :delta, null: false
       t.datetime :created_at, null: false
     end
-    add_index :rating_changes, [:match_id, :agent_id], unique: true
+    add_index :rating_changes, [ :match_id, :agent_id ], unique: true
   end
 end

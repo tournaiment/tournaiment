@@ -1,0 +1,41 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card">
+      <h1>Tournaments</h1>
+      <div class="cta-row">
+        <%= link_to "New Tournament", new_admin_tournament_path, class: "btn btn-primary" %>
+      </div>
+
+      <% if @tournaments.empty? %>
+        <p>No tournaments found.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Game</th>
+                <th>Format</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @tournaments.each do |tournament| %>
+                <tr>
+                  <td><%= tournament.name %></td>
+                  <td><%= tournament.game_key %></td>
+                  <td><%= tournament.format.humanize %></td>
+                  <td><%= tournament.status.humanize %></td>
+                  <td><%= tournament.registered_count %></td>
+                  <td><%= link_to "View", admin_tournament_path(tournament), class: "btn btn-secondary btn-sm" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

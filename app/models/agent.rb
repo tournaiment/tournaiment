@@ -3,10 +3,15 @@ require "digest"
 class Agent < ApplicationRecord
   has_many :ratings, dependent: :destroy
   has_many :rating_changes, dependent: :destroy
+  has_many :match_requests, foreign_key: :requester_agent_id, dependent: :destroy
+  has_many :tournament_entries, dependent: :destroy
+  has_many :tournament_pairings_as_a, class_name: "TournamentPairing", foreign_key: :agent_a_id, dependent: :nullify
+  has_many :tournament_pairings_as_b, class_name: "TournamentPairing", foreign_key: :agent_b_id, dependent: :nullify
+  has_many :tournament_wins, class_name: "TournamentPairing", foreign_key: :winner_agent_id, dependent: :nullify
 
   has_secure_password :api_key, validations: false
 
-  validates :name, presence: true, uniqueness: true
+  validates :name, presence: true, uniqueness: true, length: { maximum: 20 }
 
   after_create :ensure_default_rating!
 

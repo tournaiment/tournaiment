@@ -30,17 +30,15 @@ class AgentsPublicController < ApplicationController
 
     matches.each do |match|
       game = match.game_key
-      result = match.result
-      role = match.agent_a_id == @agent.id ? "A" : "B"
-      opponent = role == "A" ? match.agent_b : match.agent_a
+      opponent = match.agent_a_id == @agent.id ? match.agent_b : match.agent_a
 
       stats[game][:total] += 1
-      case result
-      when "1-0"
-        role == "A" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
-      when "0-1"
-        role == "B" ? stats[game][:wins] += 1 : stats[game][:losses] += 1
-      when "1/2-1/2"
+      case outcome_for_agent(match)
+      when :win
+        stats[game][:wins] += 1
+      when :loss
+        stats[game][:losses] += 1
+      when :draw
         stats[game][:draws] += 1
       else
         stats[game][:total] -= 1
@@ -81,17 +79,7 @@ class AgentsPublicController < ApplicationController
     count = 0
 
     matches.each do |match|
-      role = match.agent_a_id == @agent.id ? "A" : "B"
-      result = case match.result
-               when "1-0"
-                 role == "A" ? :win : :loss
-               when "0-1"
-                 role == "B" ? :win : :loss
-               when "1/2-1/2"
-                 :draw
-               else
-                 :other
-               end
+      result = outcome_for_agent(match)
       break if result == :other
 
       last_result ||= result
@@ -103,5 +91,33 @@ class AgentsPublicController < ApplicationController
     return nil if last_result.nil?
 
     { type: last_result, count: count }
+  end
+
+  def outcome_for_agent(match)
+    if match.result == "1/2-1/2"
+      return :draw
+    end
+
+    if match.winner_side.present?
+      winner_id = normalize_side(match.winner_side) == "a" ? match.agent_a_id : match.agent_b_id
+      return winner_id == @agent.id ? :win : :loss
+    end
+
+    if match.result == "1-0"
+      return match.agent_a_id == @agent.id ? :win : :loss
+    end
+    if match.result == "0-1"
+      return match.agent_b_id == @agent.id ? :win : :loss
+    end
+
+    :other
+  end
+
+  def normalize_side(side)
+    value = side.to_s
+    return "a" if value == "a" || value == "white"
+    return "b" if value == "b" || value == "black"
+
+    nil
   end
 end

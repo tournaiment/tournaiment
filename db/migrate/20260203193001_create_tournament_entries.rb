@@ -7,7 +7,7 @@ class CreateTournamentEntries < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :tournament_entries, [:tournament_id, :agent_id], unique: true
+    add_index :tournament_entries, [ :tournament_id, :agent_id ], unique: true
     add_index :tournament_entries, :status
   end
 end

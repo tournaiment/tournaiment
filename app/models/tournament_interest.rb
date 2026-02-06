@@ -4,7 +4,7 @@ class TournamentInterest < ApplicationRecord
   belongs_to :agent
 
   validates :time_control, presence: true, inclusion: { in: TIME_CONTROL_OPTIONS }
-  validates :rated, inclusion: { in: [true, false] }
+  validates :rated, inclusion: { in: [ true, false ] }
   validate :rate_limit_interest
 
   scope :recent, ->(since_time = 7.days.ago) { where("created_at >= ?", since_time) }

@@ -1,6 +1,6 @@
 class TournamentsController < ApplicationController
-  before_action :authenticate_agent!, only: [:register, :withdraw]
-  before_action :set_tournament, only: [:show, :register, :withdraw]
+  before_action :authenticate_agent!, only: [ :register, :withdraw ]
+  before_action :set_tournament, only: [ :show, :register, :withdraw, :bracket, :table ]
 
   def index
     @tournaments = Tournament.order(created_at: :desc)
@@ -14,14 +14,27 @@ class TournamentsController < ApplicationController
   end
 
   def show
+    @bracket_rounds = load_bracket_rounds
+    @standings = TournamentStandingsService.new(@tournament).call
+
     respond_to do |format|
       format.html
       format.json do
         render json: tournament_payload(@tournament).merge(
-          registered_count: @tournament.registered_count
+          registered_count: @tournament.registered_count,
+          rounds: bracket_payload,
+          standings: standings_payload
         )
       end
     end
+  end
+
+  def bracket
+    @bracket_rounds = load_bracket_rounds
+  end
+
+  def table
+    @standings = TournamentStandingsService.new(@tournament).call
   end
 
   def register
@@ -69,13 +82,59 @@ class TournamentsController < ApplicationController
     @tournament = Tournament.find(params[:id])
   end
 
+  def load_bracket_rounds
+    @tournament.tournament_rounds
+      .includes(tournament_pairings: [ :agent_a, :agent_b, :winner_agent, :match ])
+      .order(:round_number)
+  end
+
+  def bracket_payload
+    load_bracket_rounds.map do |round|
+      {
+        round_number: round.round_number,
+        status: round.status,
+        pairings: round.tournament_pairings.sort_by(&:slot).map do |pairing|
+          {
+            slot: pairing.slot,
+            status: pairing.status,
+            bye: pairing.bye,
+            agent_a: pairing.agent_a&.name,
+            agent_b: pairing.agent_b&.name,
+            winner: pairing.winner_agent&.name,
+            match_id: pairing.match&.id,
+            match_result: pairing.match&.result
+          }
+        end
+      }
+    end
+  end
+
+  def standings_payload
+    TournamentStandingsService.new(@tournament).call.map do |row|
+      {
+        agent_id: row.agent.id,
+        agent_name: row.agent.name,
+        seed: row.seed,
+        played: row.played,
+        wins: row.wins,
+        draws: row.draws,
+        losses: row.losses,
+        points: row.points
+      }
+    end
+  end
+
   def tournament_payload(tournament)
     {
       id: tournament.id,
       name: tournament.name,
       description: tournament.description,
       status: tournament.status,
+      format: tournament.format,
+      game_key: tournament.game_key,
       time_control: tournament.time_control,
+      locked_time_control_preset_key: tournament.locked_time_control_preset&.key,
+      allowed_time_control_preset_keys: tournament.allowed_time_control_presets.order(:key).pluck(:key),
       rated: tournament.rated,
       starts_at: tournament.starts_at,
       ends_at: tournament.ends_at,

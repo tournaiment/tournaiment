@@ -4,6 +4,8 @@ class Match < ApplicationRecord
   belongs_to :agent_a, class_name: "Agent", optional: true
   belongs_to :agent_b, class_name: "Agent", optional: true
   belongs_to :tournament, optional: true
+  belongs_to :tournament_pairing, optional: true
+  belongs_to :time_control_preset, optional: true
   has_many :moves, dependent: :destroy
   has_many :match_agent_models, dependent: :destroy
 
@@ -13,9 +15,14 @@ class Match < ApplicationRecord
   validates :game_key, presence: true, inclusion: { in: GameRegistry.supported_keys }
   validates :current_state, presence: true
   validates :initial_state, presence: true
+  validate :preset_matches_game
+  validate :rated_preset_allowed
+  validate :tournament_constraints
 
   before_validation :set_initial_state, on: :create
+  before_validation :assign_default_rated_time_control_preset
   after_commit :broadcast_state!, on: :update, if: :broadcastable_change?
+  after_commit :schedule_tournament_progress!, on: :update, if: :finished_tournament_match?
 
   def queueable?
     status == "created" && agent_b_id.present?
@@ -101,6 +108,9 @@ class Match < ApplicationRecord
       draw_reason: draw_reason,
       tournament_id: tournament_id,
       tournament_name: tournament&.name,
+      time_control_preset_key: time_control_preset&.key,
+      time_control: time_control_payload,
+      clock_state: clock_state,
       started_at: started_at,
       finished_at: finished_at,
       initial_state: initial_state,
@@ -145,7 +155,37 @@ class Match < ApplicationRecord
     snapshot_agent_model!(agent_b, "b") if agent_b
   end
 
+  def agent_for_actor(actor)
+    rules = GameRegistry.fetch!(game_key)
+    return agent_a if actor == rules.actors.first
+    return agent_b if actor == rules.actors.second
+
+    nil
+  end
+
+  def actor_for_agent(agent)
+    return nil if agent.nil?
+    rules = GameRegistry.fetch!(game_key)
+    return rules.actors.first if agent.id == agent_a_id
+    return rules.actors.second if agent.id == agent_b_id
+
+    nil
+  end
+
   private
+
+  def time_control_payload
+    if time_control_preset
+      {
+        preset_id: time_control_preset.key,
+        category: time_control_preset.category,
+        clock_type: time_control_preset.clock_type,
+        clock_config: time_control_preset.clock_config
+      }
+    else
+      { category: time_control }.compact
+    end
+  end
 
   def transition!(from:, to:)
     return if status == to
@@ -170,21 +210,41 @@ class Match < ApplicationRecord
     # Validation will surface unsupported games.
   end
 
-  def agent_for_actor(actor)
-    rules = GameRegistry.fetch!(game_key)
-    return agent_a if actor == rules.actors.first
-    return agent_b if actor == rules.actors.second
+  def preset_matches_game
+    return if time_control_preset.blank?
+    return if time_control_preset.game_key == game_key
 
-    nil
+    errors.add(:time_control_preset_id, "must match game key")
   end
 
-  def actor_for_agent(agent)
-    return nil if agent.nil?
-    rules = GameRegistry.fetch!(game_key)
-    return rules.actors.first if agent.id == agent_a_id
-    return rules.actors.second if agent.id == agent_b_id
+  def rated_preset_allowed
+    return unless rated?
 
-    nil
+    if time_control_preset.blank?
+      errors.add(:time_control_preset_id, "is required for rated matches")
+      return
+    end
+
+    return if time_control_preset.rated_allowed?
+
+    errors.add(:time_control_preset_id, "is not approved for rated games")
+  end
+
+  def tournament_constraints
+    return if tournament.blank?
+
+    if tournament.game_key != game_key
+      errors.add(:game_key, "must match tournament game")
+    end
+
+    if tournament.rated != rated
+      errors.add(:rated, "must match tournament rated setting")
+    end
+
+    return if time_control_preset.blank?
+    return if tournament.preset_allowed?(time_control_preset)
+
+    errors.add(:time_control_preset_id, "is not allowed for this tournament")
   end
 
   def snapshot_agent_model!(agent, role)
@@ -207,6 +267,26 @@ class Match < ApplicationRecord
     GameRegistry.fetch!(game_key).actor_for_ply(ply_count)
   end
 
+  def assign_default_rated_time_control_preset
+    return unless rated?
+    return if time_control_preset.present?
+    return if game_key.blank?
+
+    scope = TimeControlPreset.active.where(game_key: game_key, rated_allowed: true)
+    scope = scope.where(category: time_control) if time_control.present?
+
+    if tournament.present?
+      if tournament.locked_time_control_preset_id.present?
+        scope = scope.where(id: tournament.locked_time_control_preset_id)
+      elsif tournament.tournament_time_control_presets.exists?
+        scope = scope.where(id: tournament.allowed_time_control_presets.select(:id))
+      end
+    end
+
+    self.time_control_preset = scope.order(:key).first
+    self.time_control = time_control_preset.category if time_control_preset.present? && time_control.blank?
+  end
+
   def default_tags
     {
       event: "Tournaiment Match",
@@ -216,5 +296,13 @@ class Match < ApplicationRecord
       white: agent_a&.name || "White",
       black: agent_b&.name || "Black"
     }
+  end
+
+  def finished_tournament_match?
+    saved_change_to_status? && status == "finished" && tournament_pairing_id.present?
+  end
+
+  def schedule_tournament_progress!
+    TournamentProgressJob.perform_later(id)
   end
 end

@@ -5,9 +5,29 @@
 
       <p>Welcome, <%= current_admin.email %>.</p>
 
+      <div class="stat-grid">
+        <div>
+          <div class="stat-value" style="color: var(--accent)"><%= number_with_delimiter(@total_agents) %></div>
+          <div class="stat-label">Agents</div>
+        </div>
+        <div>
+          <div class="stat-value" style="color: var(--accent-2)"><%= number_with_delimiter(@total_matches) %></div>
+          <div class="stat-label">Matches Played</div>
+        </div>
+        <div>
+          <div class="stat-value" style="color: #f59e0b"><%= number_with_delimiter(@total_moves) %></div>
+          <div class="stat-label">Moves</div>
+        </div>
+        <div>
+          <div class="stat-value" style="color: #10b981"><%= number_with_delimiter(@total_tournaments) %></div>
+          <div class="stat-label">Tournaments</div>
+        </div>
+      </div>
+
       <nav class="admin-nav">
         <%= link_to "Agents", admin_agents_path, class: "btn btn-secondary" %>
         <%= link_to "Matches", admin_matches_path, class: "btn btn-secondary" %>
+        <%= link_to "Tournaments", admin_tournaments_path, class: "btn btn-secondary" %>
         <%= link_to "Tournament Requests", admin_tournament_interests_path, class: "btn btn-secondary" %>
         <%= link_to "Audit Logs", admin_audit_logs_path, class: "btn btn-secondary" %>
       </nav>

@@ -7,12 +7,19 @@
 
       <p>
         <strong>Status:</strong> <%= @tournament.status.to_s.humanize %><br />
+        <strong>Game:</strong> <%= @tournament.game_key %><br />
+        <strong>Format:</strong> <%= @tournament.format.humanize %><br />
         <strong>Time control:</strong> <%= @tournament.time_control %><br />
         <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
         <strong>Starts:</strong> <%= @tournament.starts_at || "TBD" %><br />
         <strong>Ends:</strong> <%= @tournament.ends_at || "TBD" %><br />
         <strong>Max players:</strong> <%= @tournament.max_players || "Open" %>
       </p>
+
+      <div class="cta-row">
+        <%= link_to "View Bracket", bracket_tournament_path(@tournament), class: "btn btn-secondary" %>
+        <%= link_to "View Table", table_tournament_path(@tournament), class: "btn btn-secondary" %>
+      </div>
     </div>
   </div>
 </section>

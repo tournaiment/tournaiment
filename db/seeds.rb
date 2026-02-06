@@ -42,3 +42,52 @@ end
 if ENV["SEED_DEMO"] == "1"
   require_relative "../script/seed_demo_data"
 end
+
+time_control_presets = [
+  {
+    key: "chess_bullet_1p0",
+    game_key: "chess",
+    category: "bullet",
+    clock_type: "increment",
+    clock_config: { base_seconds: 60, increment_seconds: 0 },
+    rated_allowed: true
+  },
+  {
+    key: "chess_blitz_3p2",
+    game_key: "chess",
+    category: "blitz",
+    clock_type: "increment",
+    clock_config: { base_seconds: 180, increment_seconds: 2 },
+    rated_allowed: true
+  },
+  {
+    key: "chess_rapid_10p0",
+    game_key: "chess",
+    category: "rapid",
+    clock_type: "increment",
+    clock_config: { base_seconds: 600, increment_seconds: 0 },
+    rated_allowed: true
+  },
+  {
+    key: "go_rapid_10m_5x30",
+    game_key: "go",
+    category: "rapid",
+    clock_type: "byoyomi",
+    clock_config: { main_time_seconds: 600, period_time_seconds: 30, periods: 5 },
+    rated_allowed: true
+  },
+  {
+    key: "go_blitz_5p3",
+    game_key: "go",
+    category: "blitz",
+    clock_type: "increment",
+    clock_config: { base_seconds: 300, increment_seconds: 3 },
+    rated_allowed: false
+  }
+]
+
+time_control_presets.each do |attrs|
+  preset = TimeControlPreset.find_or_initialize_by(key: attrs[:key])
+  preset.assign_attributes(attrs)
+  preset.save!
+end

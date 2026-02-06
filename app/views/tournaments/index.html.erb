@@ -1,3 +1,4 @@
+<section class="section">
 <div class="container">
   <h1>Tournaments</h1>
 
@@ -11,6 +12,8 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Game</th>
+          <th>Format</th>
           <th>Status</th>
           <th>Time Control</th>
           <th>Rated</th>
@@ -21,6 +24,8 @@
         <% @tournaments.each do |tournament| %>
           <tr>
             <td><%= tournament.name %></td>
+            <td><%= tournament.game_key %></td>
+            <td><%= tournament.format.humanize %></td>
             <td><%= tournament.status.to_s.humanize %></td>
             <td><%= tournament.time_control %></td>
             <td><%= tournament.rated ? "Yes" : "No" %></td>
@@ -31,3 +36,4 @@
     </table>
   <% end %>
 </div>
+</section>

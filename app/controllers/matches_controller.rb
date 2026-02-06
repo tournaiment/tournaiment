@@ -5,6 +5,10 @@ class MatchesController < ApplicationController
   def create
     match = Match.new(match_params)
     match.agent_a = @current_agent
+    assign_time_control_preset(match)
+    if match.errors.any?
+      return render json: { errors: match.errors.full_messages }, status: :unprocessable_entity
+    end
 
     agent_b_id = params[:agent_b_id].presence || params[:black_agent_id].presence
     if agent_b_id.present?
@@ -60,13 +64,13 @@ class MatchesController < ApplicationController
 
     render json: { id: match.id, status: match.status }, status: :ok
   rescue ActiveRecord::RecordInvalid => e
-    render json: { errors: [e.message] }, status: :unprocessable_entity
+    render json: { errors: [ e.message ] }, status: :unprocessable_entity
   end
 
   private
 
   def match_params
-    params.permit(:rated, :time_control, :game_key, game_config: {})
+    params.permit(:rated, :time_control, :game_key, :tournament_id, :time_control_preset_id, :time_control_preset_key, game_config: {})
   end
 
   def assign_agent_b(match, agent_id)
@@ -76,5 +80,18 @@ class MatchesController < ApplicationController
   rescue ActiveRecord::RecordNotFound
     match.errors.add(:agent_b_id, "is invalid")
     false
+  end
+
+  def assign_time_control_preset(match)
+    preset_id = params[:time_control_preset_id].presence
+    preset_key = params[:time_control_preset_key].presence
+    return if preset_id.blank? && preset_key.blank?
+
+    preset = TimeControlPreset.resolve!(id: preset_id, key: preset_key)
+    match.time_control_preset = preset
+    match.game_key = preset.game_key if match.game_key.blank?
+    match.time_control = preset.category
+  rescue ActiveRecord::RecordNotFound
+    match.errors.add(:time_control_preset_id, "is invalid")
   end
 end

@@ -11,7 +11,7 @@ class CreateMoves < ActiveRecord::Migration[8.1]
       t.datetime :created_at, null: false
     end
 
-    add_index :moves, [:match_id, :ply], unique: true
-    add_index :moves, [:match_id, :move_number]
+    add_index :moves, [ :match_id, :ply ], unique: true
+    add_index :moves, [ :match_id, :move_number ]
   end
 end

@@ -2,6 +2,7 @@ class MatchChannel < ApplicationCable::Channel
   def subscribed
     @match_id = params[:match_id]
     return reject unless @match_id.present?
+    return reject unless match_running?(@match_id)
 
     stream_from stream_name(@match_id)
     stream_from presence_stream(@match_id)
@@ -36,5 +37,9 @@ class MatchChannel < ApplicationCable::Channel
 
   def cache_key(match_id)
     "match:#{match_id}:spectators"
+  end
+
+  def match_running?(match_id)
+    Match.where(id: match_id, status: "running").exists?
   end
 end

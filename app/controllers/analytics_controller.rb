@@ -21,7 +21,7 @@ class AnalyticsController < ApplicationController
       [
         record.game_key,
         record.provider.presence || "unknown",
-        record.model_name.presence || "unknown",
+        record.model_slug.presence || "unknown",
         record.model_version.presence || "unknown"
       ]
     end
@@ -31,16 +31,21 @@ class AnalyticsController < ApplicationController
 
       entries.each do |entry|
         stats[:total] += 1
-        result = entry.match&.result
-        role = entry.role
+        match = entry.match
+        result = match&.result
+        entry_side = normalize_match_side(entry.role)
 
         case result
-        when "1-0"
-          role == "white" ? stats[:wins] += 1 : stats[:losses] += 1
-        when "0-1"
-          role == "black" ? stats[:wins] += 1 : stats[:losses] += 1
         when "1/2-1/2"
           stats[:draws] += 1
+        when "1-0", "0-1"
+          winner_side = match_winner_side(match)
+          if winner_side.present?
+            entry_side == winner_side ? stats[:wins] += 1 : stats[:losses] += 1
+          else
+            legacy_winner_side = result == "1-0" ? "a" : "b"
+            entry_side == legacy_winner_side ? stats[:wins] += 1 : stats[:losses] += 1
+          end
         else
           stats[:total] -= 1
         end
@@ -62,7 +67,7 @@ class AnalyticsController < ApplicationController
         win_rate: stats[:total].positive? ? (stats[:wins].to_f / stats[:total]) : 0.0,
         avg_rating: avg_rating
       }
-    end.sort_by { |row| [-row[:win_rate], -row[:total]] }
+    end.sort_by { |row| [ -row[:win_rate], -row[:total] ] }
 
     @games = GameRegistry.supported_keys
   end
@@ -104,23 +109,24 @@ class AnalyticsController < ApplicationController
     summary = { wins_a: 0, wins_b: 0, draws: 0, total: 0 }
     rows = []
 
-    return [summary, rows] if agent_a.nil? || agent_b.nil?
+    return [ summary, rows ] if agent_a.nil? || agent_b.nil?
 
     matches.find_each do |match|
-      next unless [match.agent_a_id, match.agent_b_id].sort == [agent_a.id, agent_b.id].sort
+      next unless [ match.agent_a_id, match.agent_b_id ].sort == [ agent_a.id, agent_b.id ].sort
 
       entries = match.match_agent_models.select { |entry| entry.game_key == match.game_key }
       white_model = entries.find { |entry| entry.role == "a" || entry.role == "white" }
       black_model = entries.find { |entry| entry.role == "b" || entry.role == "black" }
 
       summary[:total] += 1
-      case match.result
-      when "1-0"
-        match.agent_a_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
-      when "0-1"
-        match.agent_b_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
-      when "1/2-1/2"
+      if match.result == "1/2-1/2"
         summary[:draws] += 1
+      elsif match_winner_side(match).present?
+        winner_agent_id = match_winner_side(match) == "a" ? match.agent_a_id : match.agent_b_id
+        winner_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
+      elsif match.result == "1-0" || match.result == "0-1"
+        legacy_winner_agent_id = match.result == "1-0" ? match.agent_a_id : match.agent_b_id
+        legacy_winner_agent_id == agent_a.id ? summary[:wins_a] += 1 : summary[:wins_b] += 1
       else
         summary[:total] -= 1
       end
@@ -133,12 +139,12 @@ class AnalyticsController < ApplicationController
         agent_b: match.agent_b,
         model_a: white_model,
         model_b: black_model,
-        model_a_label: white_model ? label_from(white_model.provider, white_model.model_name, white_model.model_version) : "unknown unknown unknown",
-        model_b_label: black_model ? label_from(black_model.provider, black_model.model_name, black_model.model_version) : "unknown unknown unknown"
+        model_a_label: white_model ? label_from(white_model.provider, white_model.model_slug, white_model.model_version) : "unknown unknown unknown",
+        model_b_label: black_model ? label_from(black_model.provider, black_model.model_slug, black_model.model_version) : "unknown unknown unknown"
       }
     end
 
-    [summary, rows]
+    [ summary, rows ]
   end
 
   def rating_series_for_agent(agent, game_key)
@@ -159,5 +165,17 @@ class AnalyticsController < ApplicationController
       usage[label] += 1
     end
     usage.sort_by { |_, count| -count }.map { |label, count| { label: label, count: count } }
+  end
+
+  def normalize_match_side(value)
+    side = value.to_s
+    return "a" if side == "a" || side == "white"
+    return "b" if side == "b" || side == "black"
+
+    nil
+  end
+
+  def match_winner_side(match)
+    normalize_match_side(match&.winner_side)
   end
 end

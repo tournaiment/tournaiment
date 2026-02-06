@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_132000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -66,14 +66,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.index ["match_id"], name: "index_match_agent_models_on_match_id"
   end
 
+  create_table "match_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.jsonb "game_config", default: {}, null: false
+    t.string "game_key", null: false
+    t.uuid "match_id"
+    t.datetime "matched_at"
+    t.uuid "opponent_agent_id"
+    t.boolean "rated", default: true, null: false
+    t.string "request_type", null: false
+    t.uuid "requester_agent_id", null: false
+    t.string "status", default: "open", null: false
+    t.uuid "time_control_preset_id", null: false
+    t.uuid "tournament_id"
+    t.datetime "updated_at", null: false
+    t.index ["match_id"], name: "index_match_requests_on_match_id"
+    t.index ["opponent_agent_id"], name: "index_match_requests_on_opponent_agent_id"
+    t.index ["request_type"], name: "index_match_requests_on_request_type"
+    t.index ["requester_agent_id"], name: "index_match_requests_on_requester_agent_id"
+    t.index ["status", "created_at"], name: "index_match_requests_on_status_and_created_at"
+    t.index ["status", "request_type", "game_key", "rated", "time_control_preset_id"], name: "index_match_requests_pool"
+    t.index ["status"], name: "index_match_requests_on_status"
+    t.index ["time_control_preset_id"], name: "index_match_requests_on_time_control_preset_id"
+    t.index ["tournament_id"], name: "index_match_requests_on_tournament_id"
+  end
+
   create_table "matches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "agent_a_id"
     t.uuid "agent_b_id"
-    t.uuid "black_agent_id"
+    t.jsonb "clock_state", default: {}, null: false
     t.datetime "created_at", null: false
     t.string "current_fen", default: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", null: false
     t.text "current_state", null: false
+    t.string "draw_reason"
     t.datetime "finished_at"
+    t.string "forfeit_by_side"
     t.jsonb "game_config", default: {}, null: false
     t.string "game_key", default: "chess", null: false
     t.string "initial_fen", default: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", null: false
@@ -81,20 +109,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.text "pgn"
     t.integer "ply_count", default: 0, null: false
     t.boolean "rated", default: true, null: false
+    t.string "resigned_by_side"
     t.string "result"
     t.datetime "started_at"
     t.string "status", default: "created", null: false
     t.string "termination"
     t.string "time_control"
+    t.uuid "time_control_preset_id"
+    t.uuid "tournament_id"
+    t.uuid "tournament_pairing_id"
     t.datetime "updated_at", null: false
-    t.uuid "white_agent_id"
-    t.string "winner_actor"
-    t.string "winner_color"
     t.string "winner_side"
     t.index ["agent_a_id"], name: "index_matches_on_agent_a_id"
     t.index ["agent_b_id"], name: "index_matches_on_agent_b_id"
     t.index ["created_at"], name: "index_matches_on_created_at"
     t.index ["status"], name: "index_matches_on_status"
+    t.index ["time_control_preset_id"], name: "index_matches_on_time_control_preset_id"
+    t.index ["tournament_id"], name: "index_matches_on_tournament_id"
+    t.index ["tournament_pairing_id"], name: "index_matches_on_tournament_pairing_id"
   end
 
   create_table "moves", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -137,15 +169,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.index ["agent_id", "game_key"], name: "index_ratings_on_agent_id_and_game_key", unique: true
   end
 
+  create_table "time_control_presets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "category", null: false
+    t.jsonb "clock_config", default: {}, null: false
+    t.string "clock_type", null: false
+    t.datetime "created_at", null: false
+    t.string "game_key", null: false
+    t.string "key", null: false
+    t.boolean "rated_allowed", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.index ["game_key", "active"], name: "index_time_control_presets_on_game_key_and_active"
+    t.index ["key"], name: "index_time_control_presets_on_key", unique: true
+  end
+
   create_table "tournament_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "agent_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "eliminated_at"
+    t.integer "seed"
     t.string "status", default: "registered", null: false
     t.uuid "tournament_id", null: false
     t.datetime "updated_at", null: false
     t.index ["agent_id"], name: "index_tournament_entries_on_agent_id"
     t.index ["status"], name: "index_tournament_entries_on_status"
     t.index ["tournament_id", "agent_id"], name: "index_tournament_entries_on_tournament_id_and_agent_id", unique: true
+    t.index ["tournament_id", "seed"], name: "index_tournament_entries_on_tournament_id_and_seed", unique: true
     t.index ["tournament_id"], name: "index_tournament_entries_on_tournament_id"
   end
 
@@ -160,10 +209,56 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.index ["created_at"], name: "index_tournament_interests_on_created_at"
   end
 
+  create_table "tournament_pairings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agent_a_id", null: false
+    t.uuid "agent_b_id"
+    t.boolean "bye", default: false, null: false
+    t.datetime "created_at", null: false
+    t.integer "slot", null: false
+    t.string "status", default: "pending", null: false
+    t.uuid "tournament_id", null: false
+    t.uuid "tournament_round_id", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "winner_agent_id"
+    t.index ["agent_a_id"], name: "index_tournament_pairings_on_agent_a_id"
+    t.index ["agent_b_id"], name: "index_tournament_pairings_on_agent_b_id"
+    t.index ["status"], name: "index_tournament_pairings_on_status"
+    t.index ["tournament_id"], name: "index_tournament_pairings_on_tournament_id"
+    t.index ["tournament_round_id", "slot"], name: "index_tournament_pairings_on_tournament_round_id_and_slot", unique: true
+    t.index ["tournament_round_id"], name: "index_tournament_pairings_on_tournament_round_id"
+    t.index ["winner_agent_id"], name: "index_tournament_pairings_on_winner_agent_id"
+  end
+
+  create_table "tournament_rounds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "finished_at"
+    t.integer "round_number", null: false
+    t.datetime "started_at"
+    t.string "status", default: "pending", null: false
+    t.uuid "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_tournament_rounds_on_status"
+    t.index ["tournament_id", "round_number"], name: "index_tournament_rounds_on_tournament_id_and_round_number", unique: true
+    t.index ["tournament_id"], name: "index_tournament_rounds_on_tournament_id"
+  end
+
+  create_table "tournament_time_control_presets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "time_control_preset_id", null: false
+    t.uuid "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["time_control_preset_id"], name: "idx_on_time_control_preset_id_89ec47ff3f"
+    t.index ["tournament_id", "time_control_preset_id"], name: "index_tournament_allowed_presets_unique", unique: true
+    t.index ["tournament_id"], name: "index_tournament_time_control_presets_on_tournament_id"
+  end
+
   create_table "tournaments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
     t.datetime "ends_at"
+    t.string "format", default: "single_elimination", null: false
+    t.string "game_key", default: "chess", null: false
+    t.uuid "locked_time_control_preset_id"
     t.integer "max_players"
     t.string "name", null: false
     t.boolean "rated", default: true, null: false
@@ -171,15 +266,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
     t.string "status", default: "registration_open", null: false
     t.string "time_control", default: "rapid", null: false
     t.datetime "updated_at", null: false
+    t.index ["format"], name: "index_tournaments_on_format"
+    t.index ["game_key"], name: "index_tournaments_on_game_key"
+    t.index ["locked_time_control_preset_id"], name: "index_tournaments_on_locked_time_control_preset_id"
     t.index ["status"], name: "index_tournaments_on_status"
   end
 
   add_foreign_key "match_agent_models", "agents"
   add_foreign_key "match_agent_models", "matches"
+  add_foreign_key "match_requests", "agents", column: "opponent_agent_id"
+  add_foreign_key "match_requests", "agents", column: "requester_agent_id"
+  add_foreign_key "match_requests", "matches"
+  add_foreign_key "match_requests", "time_control_presets"
+  add_foreign_key "match_requests", "tournaments"
   add_foreign_key "matches", "agents", column: "agent_a_id"
   add_foreign_key "matches", "agents", column: "agent_b_id"
-  add_foreign_key "matches", "agents", column: "black_agent_id"
-  add_foreign_key "matches", "agents", column: "white_agent_id"
+  add_foreign_key "matches", "time_control_presets"
+  add_foreign_key "matches", "tournament_pairings"
+  add_foreign_key "matches", "tournaments"
   add_foreign_key "moves", "matches"
   add_foreign_key "rating_changes", "agents"
   add_foreign_key "rating_changes", "matches"
@@ -187,4 +291,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_213000) do
   add_foreign_key "tournament_entries", "agents"
   add_foreign_key "tournament_entries", "tournaments"
   add_foreign_key "tournament_interests", "agents"
+  add_foreign_key "tournament_pairings", "agents", column: "agent_a_id"
+  add_foreign_key "tournament_pairings", "agents", column: "agent_b_id"
+  add_foreign_key "tournament_pairings", "agents", column: "winner_agent_id"
+  add_foreign_key "tournament_pairings", "tournament_rounds"
+  add_foreign_key "tournament_pairings", "tournaments"
+  add_foreign_key "tournament_rounds", "tournaments"
+  add_foreign_key "tournament_time_control_presets", "time_control_presets"
+  add_foreign_key "tournament_time_control_presets", "tournaments"
+  add_foreign_key "tournaments", "time_control_presets", column: "locked_time_control_preset_id"
 end

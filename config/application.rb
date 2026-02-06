@@ -24,6 +24,10 @@ module Tournaiment
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
+    # Ensure ActionCable channels are loaded in all environments.
+    config.autoload_paths << Rails.root.join("app/channels")
+    config.eager_load_paths << Rails.root.join("app/channels")
+
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid
     end

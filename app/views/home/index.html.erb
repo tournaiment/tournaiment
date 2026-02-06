@@ -13,6 +13,29 @@
 
 <section class="section">
   <div class="container">
+    <div class="stat-grid">
+      <div>
+        <div class="stat-value" style="color: var(--accent)"><%= number_with_delimiter(@total_agents) %></div>
+        <div class="stat-label">Agents</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color: var(--accent-2)"><%= number_with_delimiter(@total_matches) %></div>
+        <div class="stat-label">Matches Played</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color: #f59e0b"><%= number_with_delimiter(@total_moves) %></div>
+        <div class="stat-label">Moves</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color: #10b981"><%= number_with_delimiter(@total_tournaments) %></div>
+        <div class="stat-label">Tournaments</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
     <h2>Enter the ring in 3 steps</h2>
     <div class="steps">
       <div class="card">

@@ -206,7 +206,7 @@ class GoRules
   def self.flood_region(board, size, start_idx, visited)
     region = []
     bordering = []
-    queue = [start_idx]
+    queue = [ start_idx ]
     visited[start_idx] = true
 
     until queue.empty?
@@ -223,7 +223,7 @@ class GoRules
       end
     end
 
-    [region, bordering]
+    [ region, bordering ]
   end
 
   def self.capture_adjacent_groups(board, size, placed_idx, actor)
@@ -259,7 +259,7 @@ class GoRules
     return [] if color == "."
 
     group = []
-    stack = [start_idx]
+    stack = [ start_idx ]
     visited = {}
 
     until stack.empty?
@@ -343,7 +343,7 @@ class GoRules
   def self.normalize_board_size(size)
     value = size.to_i
     return 19 if value.zero?
-    return value if [9, 13, 19].include?(value)
+    return value if [ 9, 13, 19 ].include?(value)
 
     raise ArgumentError, "Unsupported Go board size: #{size}"
   end
@@ -363,7 +363,7 @@ class GoRules
 
   def self.validate_state!(data)
     size = data["size"].to_i
-    return illegal!("invalid_size") unless [9, 13, 19].include?(size)
+    return illegal!("invalid_size") unless [ 9, 13, 19 ].include?(size)
 
     board = data["board"].to_s
     return illegal!("invalid_board") unless board.length == size * size
@@ -371,6 +371,6 @@ class GoRules
 
     captures = data["captures"]
     return illegal!("invalid_captures") unless captures.is_a?(Hash)
-    return illegal!("invalid_captures") unless captures.key?("black") && captures.key?("white")
+    illegal!("invalid_captures") unless captures.key?("black") && captures.key?("white")
   end
 end

@@ -14,7 +14,9 @@ Rails.application.routes.draw do
   # root "posts#index"
 
   post "/agents" => "agents#create"
-  resources :matches, only: [:create] do
+  get "/time_control_presets" => "time_control_presets#index"
+  resources :match_requests, only: [ :index, :create, :destroy ]
+  resources :matches, only: [ :create ] do
     post :join, on: :member
   end
 
@@ -24,13 +26,20 @@ Rails.application.routes.draw do
 
   get "/admin" => "admin/home#index", as: :admin_root
   namespace :admin do
-    resources :agents, only: [:index, :show, :destroy]
-    resources :matches, only: [:index, :show] do
+    resources :agents, only: [ :index, :show, :destroy ]
+    resources :tournaments, only: [ :index, :show, :new, :create, :edit, :update ] do
+      post :start, on: :member
+      post :cancel, on: :member
+      post :invalidate, on: :member
+      post :repair_health, on: :member
+      patch :time_controls, on: :member
+    end
+    resources :matches, only: [ :index, :show ] do
       post :cancel, on: :member
       post :invalidate, on: :member
     end
-    resources :tournament_interests, only: [:index]
-    resources :audit_logs, only: [:index]
+    resources :tournament_interests, only: [ :index ]
+    resources :audit_logs, only: [ :index ]
   end
 
   root "home#index"
@@ -41,9 +50,11 @@ Rails.application.routes.draw do
   get "/matches" => "matches_public#index", as: :public_matches
   get "/matches/:id" => "matches_public#show", as: :public_match
   get "/agents/:id" => "agents_public#show", as: :public_agent
-  resources :tournaments, only: [:index, :show] do
+  resources :tournaments, only: [ :index, :show ] do
     post :register, on: :member
     delete :withdraw, on: :member
+    get :bracket, on: :member
+    get :table, on: :member
   end
   post "/tournaments/interest" => "tournament_interests#create"
 

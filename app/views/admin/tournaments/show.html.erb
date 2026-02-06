@@ -1,0 +1,171 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card stack">
+      <h1><%= @tournament.name %></h1>
+
+      <p>
+        <strong>Status:</strong> <%= @tournament.status.humanize %><br />
+        <strong>Game:</strong> <%= @tournament.game_key %><br />
+        <strong>Format:</strong> <%= @tournament.format.humanize %><br />
+        <strong>Time Control:</strong> <%= @tournament.time_control %><br />
+        <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
+        <strong>Locked Preset:</strong> <%= @tournament.locked_time_control_preset&.key || "None" %>
+      </p>
+
+      <div class="card stack">
+        <h2>Preset Rules</h2>
+        <%= form_with url: time_controls_admin_tournament_path(@tournament), method: :patch, local: true do |form| %>
+          <div class="form-grid two-col">
+            <div>
+              <%= form.label :locked_time_control_preset_id, "Locked Preset" %>
+              <%= form.select :locked_time_control_preset_id,
+                options_for_select([["None", ""]] + @available_presets.map { |preset| [preset.key, preset.id] }, @tournament.locked_time_control_preset_id),
+                {},
+                class: "input" %>
+            </div>
+          </div>
+
+          <div>
+            <strong>Allowed Presets</strong>
+            <% if @available_presets.empty? %>
+              <p>No active presets available for this tournament game/rated settings.</p>
+            <% else %>
+              <div class="stack">
+                <% selected_ids = @tournament.allowed_time_control_presets.pluck(:id) %>
+                <% @available_presets.each do |preset| %>
+                  <label>
+                    <%= check_box_tag "allowed_time_control_preset_ids[]", preset.id, selected_ids.include?(preset.id) %>
+                    <%= preset.key %> (<%= preset.category %>, <%= preset.clock_type %>)
+                  </label>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+
+          <div>
+            <%= form.submit "Save Preset Rules", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="cta-row">
+        <%= link_to "Edit", edit_admin_tournament_path(@tournament), class: "btn btn-secondary" %>
+      </div>
+
+      <% if @tournament.status == "registration_open" %>
+        <%= button_to "Start Tournament", start_admin_tournament_path(@tournament), method: :post, class: "btn btn-primary" %>
+      <% end %>
+      <% if %w[created registration_open running].include?(@tournament.status) %>
+        <%= button_to "Cancel Tournament", cancel_admin_tournament_path(@tournament), method: :post, data: { confirm: "Cancel this tournament and rollback affected ratings?" }, class: "btn btn-secondary" %>
+      <% end %>
+      <% if @tournament.status == "finished" %>
+        <%= button_to "Invalidate Tournament", invalidate_admin_tournament_path(@tournament), method: :post, data: { confirm: "Invalidate this tournament and rollback all rating changes?" }, class: "btn btn-secondary" %>
+      <% end %>
+      <%= button_to "Run Health Repair", repair_health_admin_tournament_path(@tournament), method: :post, data: { confirm: "Apply automatic fixes for detected tournament inconsistencies?" }, class: "btn btn-secondary" %>
+
+      <div>
+        <h2>Health Check</h2>
+        <% if @health_report[:healthy] %>
+          <p class="status-badge status-finished">Healthy</p>
+        <% else %>
+          <p class="status-badge status-failed"><%= pluralize(@health_report[:issue_count], "issue") %> detected</p>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @health_report[:issues].each do |issue| %>
+                  <tr>
+                    <td><code><%= issue[:code] %></code></td>
+                    <td><%= issue[:message] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div>
+        <h2>Standings</h2>
+        <% if @standings.empty? %>
+          <p>No standings yet.</p>
+        <% else %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th>Seed</th>
+                  <th>P</th>
+                  <th>W</th>
+                  <th>D</th>
+                  <th>L</th>
+                  <th>Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @standings.each do |row| %>
+                  <tr>
+                    <td><%= row.agent.name %></td>
+                    <td><%= row.seed || "-" %></td>
+                    <td><%= row.played %></td>
+                    <td><%= row.wins %></td>
+                    <td><%= row.draws %></td>
+                    <td><%= row.losses %></td>
+                    <td><%= format("%.1f", row.points) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div>
+        <%= link_to "Public Bracket", bracket_tournament_path(@tournament), class: "btn btn-secondary" %>
+        <%= link_to "Public Table", table_tournament_path(@tournament), class: "btn btn-secondary" %>
+      </div>
+
+      <div>
+        <h2>Notification Delivery</h2>
+        <p>
+          <strong>Sent:</strong> <%= @notification_stats[:sent] %>
+          <strong>Failed:</strong> <%= @notification_stats[:failed] %>
+        </p>
+        <% if @notification_events.empty? %>
+          <p>No delivery logs yet.</p>
+        <% else %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th>Event</th>
+                  <th>Status</th>
+                  <th>Error</th>
+                  <th>At</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @notification_events.each do |row| %>
+                  <tr>
+                    <td><%= row[:agent]&.name || "Unknown" %></td>
+                    <td><%= row[:event] %></td>
+                    <td><span class="status-badge status-<%= row[:status] == "success" ? "finished" : "failed" %>"><%= row[:status] %></span></td>
+                    <td><%= row[:error].presence || "-" %></td>
+                    <td><%= row[:at] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</section>

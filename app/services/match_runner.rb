@@ -17,6 +17,8 @@ class MatchRunner
 
     @match.start!
     @match.update!(started_at: Time.current) if @match.started_at.nil?
+    @clock = MatchClock.new(@match)
+    @clock.ensure_initialized!
     @match.snapshot_agent_models!
     AuditLog.log!(actor: nil, action: "match.started", auditable: @match)
 
@@ -29,16 +31,31 @@ class MatchRunner
       @current_actor = actor
       agent = @match.agent_for_actor(actor)
 
-      move = request_move(agent, actor)
+      turn_started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      move = nil
+      begin
+        move = request_move(agent, actor)
+      rescue AgentUnavailable
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - turn_started
+        if @clock.consume!(actor, elapsed) == :time_loss
+          return finalize!(winner_actor: opponent_for_actor(actor), termination: "time_loss", actor: actor)
+        end
+        raise
+      end
+
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - turn_started
+      if @clock.consume!(actor, elapsed) == :time_loss
+        return finalize!(winner_actor: opponent_for_actor(actor), termination: "time_loss", actor: actor)
+      end
 
       if move == "resign"
-        return finalize!(actor == "white" ? :black_win : :white_win, "resign", actor: actor)
+        return finalize!(winner_actor: opponent_for_actor(actor), termination: "resign", actor: actor)
       end
 
       begin
         @match.record_move!(move)
       rescue ChessRules::IllegalMove, ChessRules::BadNotation, ChessRules::InvalidFen, GoRules::IllegalMove
-        return finalize!(actor == "white" ? :black_win : :white_win, "illegal_move", actor: actor)
+        return finalize!(winner_actor: opponent_for_actor(actor), termination: "illegal_move", actor: actor)
       end
 
       if @match.result.present?
@@ -47,7 +64,7 @@ class MatchRunner
     end
   rescue AgentUnavailable
     loser_actor = @current_actor || next_actor
-    finalize!(loser_actor == "white" ? :black_win : :white_win, "no_response", actor: loser_actor)
+    finalize!(winner_actor: opponent_for_actor(loser_actor), termination: "no_response", actor: loser_actor)
   rescue StandardError => e
     @match.fail!
     AuditLog.log!(actor: nil, action: "match.failed", auditable: @match, metadata: { error: e.message })
@@ -72,7 +89,16 @@ class MatchRunner
       you_are: actor,
       state: @match.current_state,
       turn_number: rules.turn_number_for_ply(@match.ply_count + 1),
-      time_remaining_seconds: 0
+      time_remaining_seconds: @clock.time_remaining_seconds(actor),
+      rated: @match.rated,
+      tournament_id: @match.tournament_id,
+      opponent_agent_id: opponent_for(actor)&.id,
+      opponent_name: opponent_for(actor)&.name,
+      time_control: time_control_payload,
+      time_control_state: {
+        self: @clock.actor_state(actor),
+        opponent: @clock.actor_state(opponent_for_actor(actor))
+      }
     }
 
     endpoint = agent.metadata["move_endpoint"].to_s
@@ -100,17 +126,44 @@ class MatchRunner
     raise AgentUnavailable, e.message
   end
 
-  def finalize!(outcome, termination, actor: nil)
-    case outcome
-    when :white_win
-      @match.update!(result: "1-0", winner_side: "a", termination: termination)
-    when :black_win
-      @match.update!(result: "0-1", winner_side: "b", termination: termination)
-    when :draw
+  def opponent_for(actor)
+    rules = GameRegistry.fetch!(@match.game_key)
+    if actor == rules.actors.first
+      @match.agent_b
+    else
+      @match.agent_a
+    end
+  end
+
+  def opponent_for_actor(actor)
+    rules = GameRegistry.fetch!(@match.game_key)
+    return rules.actors.second if actor == rules.actors.first
+    rules.actors.first
+  end
+
+  def time_control_payload
+    preset = @match.time_control_preset
+    if preset
+      {
+        preset_id: preset.key,
+        category: preset.category,
+        clock_type: preset.clock_type,
+        clock_config: preset.clock_config
+      }
+    else
+      { category: @match.time_control }.compact
+    end
+  end
+
+  def finalize!(winner_actor:, termination:, actor: nil)
+    if winner_actor.nil?
       @match.update!(result: "1/2-1/2", winner_side: nil, termination: termination)
+    else
+      result = result_for_winner_actor(winner_actor)
+      @match.update!(result: result, winner_side: side_for_actor(winner_actor), termination: termination)
     end
 
-    apply_outcome_metadata(termination, outcome, actor)
+    apply_outcome_metadata(termination, winner_actor, actor)
     @match.finish!
     @match.update!(finished_at: Time.current)
     @match.generate_record!
@@ -121,32 +174,49 @@ class MatchRunner
   def finalize_from_result!
     rules = GameRegistry.fetch!(@match.game_key)
     scores = rules.scores_for_result(@match.result)
-    white_score = scores.fetch("white", 0.0)
-    black_score = scores.fetch("black", 0.0)
+    first_actor = rules.actors.first
+    second_actor = rules.actors.second
+    first_score = scores.fetch(first_actor, 0.0)
+    second_score = scores.fetch(second_actor, 0.0)
 
-    if white_score > black_score
-      finalize!(:white_win, rules.termination_for_result(@match.result))
-    elsif black_score > white_score
-      finalize!(:black_win, rules.termination_for_result(@match.result))
+    if first_score > second_score
+      finalize!(winner_actor: first_actor, termination: rules.termination_for_result(@match.result))
+    elsif second_score > first_score
+      finalize!(winner_actor: second_actor, termination: rules.termination_for_result(@match.result))
     else
-      finalize!(:draw, rules.termination_for_result(@match.result))
+      finalize!(winner_actor: nil, termination: rules.termination_for_result(@match.result))
     end
   end
 
-  def apply_outcome_metadata(termination, outcome, actor)
+  def apply_outcome_metadata(termination, winner_actor, actor)
     if termination == "resign" && actor
       @match.update!(resigned_by_side: side_for_actor(actor))
       return
     end
 
-    if %w[illegal_move no_response].include?(termination) && actor
+    if %w[illegal_move no_response time_loss].include?(termination) && actor
       @match.update!(forfeit_by_side: side_for_actor(actor))
       return
     end
 
-    if outcome == :draw
+    if winner_actor.nil?
       @match.update!(draw_reason: termination)
     end
+  end
+
+  def result_for_winner_actor(winner_actor)
+    rules = GameRegistry.fetch!(@match.game_key)
+    loser_actor = opponent_for_actor(winner_actor)
+
+    [
+      "1-0",
+      "0-1"
+    ].each do |result|
+      scores = rules.scores_for_result(result)
+      return result if scores.fetch(winner_actor, 0.0) > scores.fetch(loser_actor, 0.0)
+    end
+
+    winner_actor == "white" ? "1-0" : "0-1"
   end
 
   def side_for_actor(actor)

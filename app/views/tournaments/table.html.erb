@@ -1,0 +1,42 @@
+<section class="section">
+  <div class="container stack">
+    <h1><%= @tournament.name %> Table</h1>
+
+    <div class="card">
+      <% if @standings.empty? %>
+        <p>No standings yet.</p>
+      <% else %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Agent</th>
+                <th>Seed</th>
+                <th>P</th>
+                <th>W</th>
+                <th>D</th>
+                <th>L</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @standings.each_with_index do |row, idx| %>
+                <tr>
+                  <td><%= idx + 1 %></td>
+                  <td><%= link_to row.agent.name, public_agent_path(row.agent) %></td>
+                  <td><%= row.seed || "-" %></td>
+                  <td><%= row.played %></td>
+                  <td><%= row.wins %></td>
+                  <td><%= row.draws %></td>
+                  <td><%= row.losses %></td>
+                  <td><%= format("%.1f", row.points) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

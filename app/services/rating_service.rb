@@ -16,8 +16,10 @@ class RatingService
       return
     end
 
-    white_rating = rating_for(@match.agent_a)
-    black_rating = rating_for(@match.agent_b)
+    white_agent = agent_for_actor!("white")
+    black_agent = agent_for_actor!("black")
+    white_rating = rating_for(white_agent)
+    black_rating = rating_for(black_agent)
 
     score_map = scores
     white_score = score_map.fetch("white", 0.0)
@@ -41,13 +43,12 @@ class RatingService
     black_before = black_rating.current
 
     Rating.transaction do
-
       apply_change!(white_rating, new_white)
       apply_change!(black_rating, new_black)
 
       RatingChange.create!(
         match: @match,
-        agent: @match.agent_a,
+        agent: white_agent,
         before_rating: white_before,
         after_rating: new_white,
         delta: new_white - white_before,
@@ -55,7 +56,7 @@ class RatingService
       )
       RatingChange.create!(
         match: @match,
-        agent: @match.agent_b,
+        agent: black_agent,
         before_rating: black_before,
         after_rating: new_black,
         delta: new_black - black_before,
@@ -78,7 +79,7 @@ class RatingService
     Rating.transaction do
       changes.each do |change|
         rating = rating_for(change.agent)
-        rating.update!(current: change.before_rating, games_played: [rating.games_played - 1, 0].max)
+        rating.update!(current: change.before_rating, games_played: [ rating.games_played - 1, 0 ].max)
       end
       changes.delete_all
     end
@@ -107,11 +108,19 @@ class RatingService
     match_count = Match.where(rated: true)
       .where(status: "finished")
       .where(game_key: @match.game_key)
+      .where.not(id: @match.id)
       .where("finished_at >= ?", cutoff)
       .where("(agent_a_id = ? AND agent_b_id = ?) OR (agent_a_id = ? AND agent_b_id = ?)",
              @match.agent_a_id, @match.agent_b_id, @match.agent_b_id, @match.agent_a_id)
       .count
 
     match_count >= MAX_PAIR_RATED_PER_DAY
+  end
+
+  def agent_for_actor!(actor)
+    agent = @match.agent_for_actor(actor)
+    return agent if agent.present?
+
+    raise ArgumentError, "Match missing agent for actor #{actor}"
   end
 end

@@ -61,9 +61,9 @@ module DemoSeed
     %w[D3 E4 F5 C6 G6 D6]
   ].freeze
 
-  RESULTS = ["1-0", "0-1", "1/2-1/2"].freeze
+  RESULTS = [ "1-0", "0-1", "1/2-1/2" ].freeze
 
-  TIME_CONTROLS = ["bullet", "blitz", "rapid", "classical"].freeze
+  TIME_CONTROLS = [ "bullet", "blitz", "rapid", "classical" ].freeze
 
   MODEL_POOL = [
     { provider: "openai", model_name: "gpt-4.1", model_version: "2025-11-15" },
@@ -148,13 +148,13 @@ module DemoSeed
 
     target.times do |i|
       white = agents.sample
-      black = (agents - [white]).sample
-      game_key = ["chess", "go"].sample
+      black = (agents - [ white ]).sample
+      game_key = [ "chess", "go" ].sample
       use_real = rand < real_ratio
       if game_key == "go" && use_real && go_games.any?
         game_config = { "board_size" => go_games.sample[:size], "ruleset" => "chinese" }
       elsif game_key == "go"
-        game_config = { "board_size" => [9, 13, 19].sample, "ruleset" => "chinese" }
+        game_config = { "board_size" => [ 9, 13, 19 ].sample, "ruleset" => "chinese" }
       else
         game_config = {}
       end
@@ -362,11 +362,11 @@ module DemoSeed
     scores = rules.scores_for_result(result)
     winner_actor = if scores["white"] > scores["black"]
                      "white"
-                   elsif scores["black"] > scores["white"]
+    elsif scores["black"] > scores["white"]
                      "black"
-                   else
+    else
                      nil
-                   end
+    end
 
     attrs = {
       status: "finished",
@@ -426,7 +426,7 @@ module DemoSeed
     names = BASE_AGENT_NAMES.dup
     return names.first(target) if target <= names.length
 
-    used = names.to_h { |name| [name, true] }
+    used = names.to_h { |name| [ name, true ] }
     while names.length < target
       prefix = AGENT_PREFIXES.sample
       suffix = AGENT_SUFFIXES.sample
@@ -515,7 +515,7 @@ module DemoSeed
       content = File.read(path)
       size = content[/SZ\[(\d+)\]/, 1].to_i
       size = 19 if size.zero?
-      next unless [9, 13, 19].include?(size)
+      next unless [ 9, 13, 19 ].include?(size)
 
       result_tag = content[/RE\[([^\]]+)\]/, 1]
       result = sgf_result_to_match(result_tag)
