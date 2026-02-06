@@ -100,25 +100,31 @@ module DemoSeed
 
   def run!
     if ENV["SEED_DEMO_FORCE"] == "1"
-      MatchAgentModel.delete_all
-      Move.delete_all
-      RatingChange.delete_all
-      MatchRequest.delete_all
-      Match.delete_all
-      TournamentPairing.delete_all
-      TournamentRound.delete_all
-      TournamentTimeControlPreset.delete_all
-      Rating.delete_all
-      TournamentEntry.delete_all
-      Tournament.delete_all
-      TournamentInterest.delete_all
-      AuditLog.delete_all
+      safe_delete_all(MatchAgentModel)
+      safe_delete_all(Move)
+      safe_delete_all(RatingChange)
+      safe_delete_all(MatchRequest)
+      safe_delete_all(Match)
+      safe_delete_all(TournamentPairing)
+      safe_delete_all(TournamentRound)
+      safe_delete_all(TournamentTimeControlPreset)
+      safe_delete_all(Rating)
+      safe_delete_all(TournamentEntry)
+      safe_delete_all(Tournament)
+      safe_delete_all(TournamentInterest)
+      safe_delete_all(AuditLog)
     end
 
     ensure_time_control_presets!
     seed_agents
     seed_matches if Match.count.zero?
     seed_tournaments
+  end
+
+  def safe_delete_all(model)
+    return unless model.table_exists?
+
+    model.delete_all
   end
 
   def ensure_time_control_presets!
@@ -858,6 +864,12 @@ module DemoSeed
   end
 
   def create_tournament_match!(tournament:, pairing:, match_status:, result:, started_at:, finished_at:)
+    initial_status = if %w[created queued].include?(match_status)
+      match_status
+    else
+      "running"
+    end
+
     match = Match.create!(
       tournament: tournament,
       tournament_pairing: pairing,
@@ -866,27 +878,78 @@ module DemoSeed
       time_control: tournament.time_control,
       agent_a: pairing.agent_a,
       agent_b: pairing.agent_b,
-      status: match_status,
-      result: (match_status == "finished" ? result : nil),
-      winner_side: (match_status == "finished" ? winner_side_for_result(tournament.game_key, result) : nil),
-      termination: (match_status == "finished" ? GameRegistry.fetch!(tournament.game_key).termination_for_result(result) : nil),
-      started_at: started_at,
-      finished_at: finished_at
+      status: initial_status
     )
 
-    return match unless match_status == "finished" && result.present?
+    if initial_status == "running"
+      seed_tournament_match_moves!(match, finished: match_status == "finished")
+      match.update_columns(started_at: started_at || match.started_at || match.created_at, updated_at: Time.current)
+    end
+
+    if match_status == "finished" && result.present?
+      finalize_tournament_match!(
+        match,
+        result: result,
+        started_at: started_at,
+        finished_at: finished_at
+      )
+      return match
+    end
+
+    if match_status == "running"
+      match.update_columns(status: "running", updated_at: Time.current)
+    elsif match_status == "queued"
+      match.update_columns(status: "queued", started_at: nil, updated_at: Time.current)
+    end
+
+    match
+  end
+
+  def seed_tournament_match_moves!(match, finished:)
+    if match.game_key == "go"
+      size = match.game_config.fetch("board_size", 19)
+      if finished
+        apply_go_opening(match, go_opening_for_size(size))
+      else
+        opening = go_opening_for_size(size).reject { |move| move == "pass" }
+        opening = %w[D4 Q16 D16 Q4 C4 R16] if opening.empty?
+        apply_go_moves(match, opening.first([ opening.length, 6 ].min))
+      end
+    else
+      opening = OPENINGS.sample
+      moves = finished ? opening : opening.first([ opening.length, 6 ].min)
+      apply_chess_moves(match, moves)
+    end
+  end
+
+  def finalize_tournament_match!(match, result:, started_at:, finished_at:)
+    rules = GameRegistry.fetch!(match.game_key)
+    finished_time = finished_at || Time.current
+
+    match.update_columns(
+      status: "finished",
+      result: result,
+      winner_side: winner_side_for_result(match.game_key, result),
+      termination: rules.termination_for_result(result),
+      started_at: started_at || match.started_at || match.created_at,
+      finished_at: finished_time,
+      updated_at: finished_time
+    )
 
     tags = {
-      event: tournament.name,
+      event: match.tournament&.name || "Tournaiment Demo",
       site: "Tournaiment Demo",
-      date: (finished_at || Time.current).to_date,
-      round: pairing.tournament_round.round_number.to_s,
-      white: pairing.agent_a.name,
-      black: pairing.agent_b.name
+      date: finished_time.to_date,
+      round: match.tournament_pairing&.tournament_round&.round_number.to_s,
+      white: match.agent_a.name,
+      black: match.agent_b.name
     }
-    record = GameRegistry.fetch!(tournament.game_key).render_record(moves: [], result: result, tags: tags)
-    match.update_columns(pgn: record, updated_at: finished_at || Time.current)
-    match
+    moves = match.moves.order(:ply).pluck(:display)
+    record = rules.render_record(moves: moves, result: result, tags: tags)
+    match.update_columns(pgn: record, updated_at: finished_time)
+
+    RatingService.new(match).apply!
+    RatingChange.where(match_id: match.id).update_all(created_at: finished_time)
   end
 
   def winner_side_for_result(game_key, result)
