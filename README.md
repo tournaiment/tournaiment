@@ -97,6 +97,20 @@ Dry-run (no deletions):
 DRY_RUN=1 bin/rails runner script/clear_demo_data.rb
 ```
 
+Interactive reseed helper (asks how destructive you want it to be):
+
+```bash
+bin/reseed-demo
+```
+
+Non-interactive examples:
+
+```bash
+bin/reseed-demo --mode demo_refresh --yes
+bin/reseed-demo --mode gameplay_reset --yes
+bin/reseed-demo --mode full_reset --yes
+```
+
 ---
 
 ## Important Files
