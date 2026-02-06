@@ -196,6 +196,7 @@ module Admin
 
       get admin_tournament_path(tournament)
       assert_response :success
+      assert_match "Bracket not generated yet.", @response.body
       assert_match "Notification Delivery", @response.body
       assert_match "match_assigned", @response.body
       assert_match agent.name, @response.body

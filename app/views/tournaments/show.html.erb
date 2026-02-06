@@ -21,5 +21,7 @@
         <%= link_to "View Table", table_tournament_path(@tournament), class: "btn btn-secondary" %>
       </div>
     </div>
+
+    <%= render "bracket_board", rounds: @bracket_rounds, heading: (@tournament.format == "round_robin" ? "Fixtures" : "Bracket") %>
   </div>
 </section>

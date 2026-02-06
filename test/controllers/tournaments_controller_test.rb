@@ -17,4 +17,19 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get table_tournament_path(tournament)
     assert_response :success
   end
+
+  test "show renders bracket panel" do
+    tournament = Tournament.create!(
+      name: "Show Bracket Cup",
+      status: "registration_open",
+      time_control: "rapid",
+      rated: true,
+      format: "single_elimination",
+      game_key: "chess"
+    )
+
+    get tournament_path(tournament)
+    assert_response :success
+    assert_match "Bracket not generated yet.", @response.body
+  end
 end

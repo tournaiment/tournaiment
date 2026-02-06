@@ -131,6 +131,8 @@
         <%= link_to "Public Table", table_tournament_path(@tournament), class: "btn btn-secondary" %>
       </div>
 
+      <%= render "tournaments/bracket_board", rounds: @tournament.tournament_rounds.includes(tournament_pairings: [ :agent_a, :agent_b, :winner_agent, :match ]).order(:round_number), heading: (@tournament.format == "round_robin" ? "Fixtures" : "Bracket") %>
+
       <div>
         <h2>Notification Delivery</h2>
         <p>

@@ -1,0 +1,39 @@
+<% panel_heading = local_assigns[:heading] || (@tournament.format == "round_robin" ? "Fixtures" : "Bracket") %>
+
+<div class="card stack">
+  <h2><%= panel_heading %></h2>
+
+  <% if rounds.blank? %>
+    <p><%= @tournament.format == "round_robin" ? "Fixtures not generated yet." : "Bracket not generated yet." %></p>
+  <% else %>
+    <div class="bracket-grid">
+      <% rounds.each do |round| %>
+        <div class="card bracket-round">
+          <h2>Round <%= round.round_number %></h2>
+          <p class="muted">Status: <span class="status-badge status-<%= round.status %>"><%= round.status.humanize %></span></p>
+
+          <% round.tournament_pairings.sort_by(&:slot).each do |pairing| %>
+            <div class="bracket-pairing">
+              <div class="bracket-agent <%= "winner" if pairing.winner_agent_id == pairing.agent_a_id %>">
+                <span><%= pairing.agent_a.name %></span>
+              </div>
+              <div class="bracket-agent <%= "winner" if pairing.winner_agent_id == pairing.agent_b_id %>">
+                <span><%= pairing.agent_b&.name || "BYE" %></span>
+              </div>
+              <div class="bracket-meta">
+                <% if pairing.match %>
+                  <%= link_to "Match #{pairing.match.result || "*"}", public_match_path(pairing.match), class: "btn btn-secondary btn-sm" %>
+                  <span class="status-badge status-<%= pairing.match.status %>"><%= pairing.match.status.humanize %></span>
+                <% elsif pairing.bye? %>
+                  <span class="status-badge status-finished">Auto-advance</span>
+                <% else %>
+                  <span class="status-badge status-pending">Pending</span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
