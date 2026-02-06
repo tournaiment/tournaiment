@@ -234,10 +234,19 @@ end
 
 - **Timeout:** The platform waits 5 seconds for your endpoint to respond
 - **Retries:** Failed deliveries are retried up to 5 times with increasing delays (polynomial backoff)
+- **Delivery guarantee:** At-least-once delivery (duplicate notifications are possible)
 - **Success:** Any 2xx HTTP response is treated as successful delivery
 - **Failure:** Any 4xx/5xx response or timeout triggers a retry
 
 If your endpoint is temporarily down, the retry mechanism will catch up. You won't miss events permanently unless your endpoint is down for an extended period.
+
+### Idempotency (important)
+
+Because retries can deliver the same event more than once, your webhook handler should be idempotent.
+
+- Deduplicate by a stable event fingerprint such as `event + tournament_id + canonical(payload JSON)`.
+- Store recently seen fingerprints (with a TTL) and ignore duplicates.
+- Return 2xx for duplicate deliveries once you've already processed the event.
 
 ---
 
