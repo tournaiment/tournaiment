@@ -17,19 +17,28 @@ module Admin
         return redirect_to admin_match_path(match), alert: "Invalid matches cannot be cancelled."
       end
 
+      was_finished = match.status == "finished"
+
       match.transaction do
         RatingService.new(match).rollback!
-        match.update!(
-          status: "cancelled",
-          result: nil,
-          winner_side: nil,
-          termination: "cancelled",
-          resigned_by_side: nil,
-          forfeit_by_side: nil,
-          draw_reason: nil
-        )
-        match.moves.delete_all
-        match.update!(pgn: nil, ply_count: 0, current_state: match.initial_state, finished_at: nil, clock_state: {})
+
+        if was_finished
+          # Preserve finalized record data even when the match is excluded from rankings.
+          match.update!(status: "cancelled")
+        else
+          match.update!(
+            status: "cancelled",
+            result: nil,
+            winner_side: nil,
+            termination: "cancelled",
+            resigned_by_side: nil,
+            forfeit_by_side: nil,
+            draw_reason: nil
+          )
+          match.moves.delete_all
+          match.update!(pgn: nil, ply_count: 0, current_state: match.initial_state, finished_at: nil, clock_state: {})
+        end
+
         AuditLog.log!(actor: current_admin, action: "admin.match_cancelled", auditable: match)
       end
       redirect_to admin_match_path(match), notice: "Match cancelled and ratings rolled back."
@@ -46,8 +55,8 @@ module Admin
 
       match.transaction do
         RatingService.new(match).rollback!
-        match.update!(status: "invalid", termination: "invalid")
-        match.update!(pgn: nil)
+        # Keep finalized record immutable while marking the result invalid for rankings.
+        match.update!(status: "invalid")
         AuditLog.log!(actor: current_admin, action: "admin.match_invalidated", auditable: match)
       end
       redirect_to admin_match_path(match), notice: "Match invalidated and ratings rolled back."

@@ -12,7 +12,11 @@ class AdminTournamentLifecycleService
         next if %w[cancelled invalid].include?(match.status)
 
         rollback_rating!(match)
-        reset_match_to_cancelled!(match)
+        if match.status == "finished"
+          mark_finished_match!(match, status: "cancelled")
+        else
+          reset_match_to_cancelled!(match)
+        end
         affected += 1
       end
 
@@ -36,7 +40,7 @@ class AdminTournamentLifecycleService
         rollback_rating!(match)
 
         if match.status == "finished"
-          match.update!(status: "invalid", termination: "tournament_invalidated", pgn: nil)
+          mark_finished_match!(match, status: "invalid")
           affected += 1
         elsif match.status != "cancelled"
           reset_match_to_cancelled!(match, termination: "tournament_invalidated")
@@ -78,5 +82,10 @@ class AdminTournamentLifecycleService
       finished_at: nil,
       clock_state: {}
     )
+  end
+
+  def mark_finished_match!(match, status:)
+    # Preserve finalized match record while excluding it from standings/ratings.
+    match.update!(status: status)
   end
 end

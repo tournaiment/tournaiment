@@ -63,4 +63,42 @@ class MatchTest < ActiveSupport::TestCase
     assert_not match.valid?
     assert_includes match.errors[:time_control_preset_id], "is required for rated matches"
   end
+
+  test "stale transition cannot overwrite a newer terminal status" do
+    agent_a = build_agent("MTS1")
+    agent_b = build_agent("MTS2")
+
+    match = Match.create!(
+      agent_a: agent_a,
+      agent_b: agent_b,
+      game_key: "chess",
+      rated: false,
+      status: "running"
+    )
+    stale = Match.find(match.id)
+
+    match.update!(status: "cancelled")
+    assert_equal false, stale.finish!
+    assert_equal "cancelled", match.reload.status
+  end
+
+  test "record_move returns terminal result without persisting while match is running" do
+    agent_a = build_agent("MTG1")
+    agent_b = build_agent("MTG2")
+    match = Match.create!(
+      agent_a: agent_a,
+      agent_b: agent_b,
+      game_key: "go",
+      rated: false,
+      status: "running"
+    )
+
+    first = match.record_move!("pass")
+    second = match.record_move!("pass")
+
+    assert_nil first[:result]
+    assert second[:result].present?
+    assert_nil match.reload.result
+    assert_equal "running", match.status
+  end
 end

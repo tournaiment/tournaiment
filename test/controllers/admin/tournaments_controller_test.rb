@@ -59,7 +59,9 @@ module Admin
         agent_b: a2,
         status: "finished",
         result: "1-0",
+        winner_side: "a",
         termination: "checkmate",
+        pgn: "[Event \"Cancel Cup\"]",
         finished_at: Time.current
       )
 
@@ -75,7 +77,10 @@ module Admin
       match.reload
       assert_equal "cancelled", tournament.status
       assert_equal "cancelled", match.status
-      assert_nil match.result
+      assert_equal "1-0", match.result
+      assert_equal "a", match.winner_side
+      assert_equal "checkmate", match.termination
+      assert_equal "[Event \"Cancel Cup\"]", match.pgn
       assert_equal 0, RatingChange.where(match_id: match.id).count
       assert_equal initial_a, a1.ratings.find_by!(game_key: "chess").reload.current
       assert_equal initial_b, a2.ratings.find_by!(game_key: "chess").reload.current
@@ -103,7 +108,9 @@ module Admin
         agent_b: a2,
         status: "finished",
         result: "1-0",
+        winner_side: "a",
         termination: "checkmate",
+        pgn: "[Event \"Invalidate Cup\"]",
         finished_at: Time.current
       )
       RatingService.new(match).apply!
@@ -115,6 +122,10 @@ module Admin
       match.reload
       assert_equal "invalid", tournament.status
       assert_equal "invalid", match.status
+      assert_equal "1-0", match.result
+      assert_equal "a", match.winner_side
+      assert_equal "checkmate", match.termination
+      assert_equal "[Event \"Invalidate Cup\"]", match.pgn
       assert_equal 0, RatingChange.where(match_id: match.id).count
     end
 

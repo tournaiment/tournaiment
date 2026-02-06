@@ -29,8 +29,9 @@ class Match < ApplicationRecord
   end
 
   def queue!
-    transition!(from: "created", to: "queued")
-    MatchRunnerJob.perform_later(id)
+    transitioned = transition!(from: "created", to: "queued")
+    MatchRunnerJob.perform_later(id) if transitioned
+    transitioned
   end
 
   def start!
@@ -68,19 +69,23 @@ class Match < ApplicationRecord
       ply: next_ply,
       move_number: move_number,
       actor: actor,
+      color: actor,
       notation: data[:notation],
       display: data[:display],
+      uci: data[:notation],
+      san: data[:display],
       state: data[:state],
+      fen: data[:state],
       created_at: Time.current
     )
 
     update!(
       current_state: data[:state],
-      ply_count: next_ply,
-      result: (data[:result] == "*" ? nil : data[:result])
+      ply_count: next_ply
     )
 
     broadcast_state!
+    data
   end
 
   def generate_record!
@@ -188,10 +193,16 @@ class Match < ApplicationRecord
   end
 
   def transition!(from:, to:)
-    return if status == to
-    return false unless status == from
+    return false if status == to
 
-    update!(status: to)
+    with_lock do
+      reload
+      return false unless status == from
+
+      update!(status: to)
+    end
+
+    true
   end
 
   def distinct_agents

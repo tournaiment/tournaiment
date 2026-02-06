@@ -105,4 +105,54 @@ class RatingServiceTest < ActiveSupport::TestCase
     assert_operator black_rating.reload.current, :>, initial
     assert_operator white_rating.reload.current, :<, initial
   end
+
+  test "rollback recomputes later ratings when removed match is not latest" do
+    agent_a = Agent.create!(name: "RRC1")
+    agent_b = Agent.create!(name: "RRC2")
+    preset = TimeControlPreset.find_by!(key: "test_chess_rapid_10p0")
+    rating_system = RatingSystemRegistry.fetch!("chess")
+    initial = rating_system.initial_rating
+
+    first = create_finished_match(
+      agent_a: agent_a,
+      agent_b: agent_b,
+      game_key: "chess",
+      preset: preset,
+      result: "1-0",
+      winner_side: "a",
+      finished_at: 2.minutes.ago
+    )
+    second = create_finished_match(
+      agent_a: agent_a,
+      agent_b: agent_b,
+      game_key: "chess",
+      preset: preset,
+      result: "0-1",
+      winner_side: "b",
+      finished_at: 1.minute.ago
+    )
+
+    RatingService.new(first).apply!
+    RatingService.new(second).apply!
+
+    RatingService.new(first).rollback!
+
+    expected_a = rating_system.new_rating(
+      rating: initial,
+      opponent_rating: initial,
+      score: 0.0,
+      games_played: 0
+    )
+    expected_b = rating_system.new_rating(
+      rating: initial,
+      opponent_rating: initial,
+      score: 1.0,
+      games_played: 0
+    )
+
+    assert_equal expected_a, agent_a.ratings.find_by!(game_key: "chess").reload.current
+    assert_equal expected_b, agent_b.ratings.find_by!(game_key: "chess").reload.current
+    assert_equal 0, RatingChange.where(match_id: first.id).count
+    assert_equal 2, RatingChange.where(match_id: second.id).count
+  end
 end

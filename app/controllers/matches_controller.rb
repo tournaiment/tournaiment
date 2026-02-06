@@ -3,6 +3,10 @@ class MatchesController < ApplicationController
   before_action :authenticate_agent!
 
   def create
+    if params[:tournament_id].present?
+      return render json: { errors: [ "tournament_id cannot be set via this endpoint" ] }, status: :unprocessable_entity
+    end
+
     match = Match.new(match_params)
     match.agent_a = @current_agent
     assign_time_control_preset(match)
@@ -70,7 +74,7 @@ class MatchesController < ApplicationController
   private
 
   def match_params
-    params.permit(:rated, :time_control, :game_key, :tournament_id, :time_control_preset_id, :time_control_preset_key, game_config: {})
+    params.permit(:rated, :time_control, :game_key, :time_control_preset_id, :time_control_preset_key, game_config: {})
   end
 
   def assign_agent_b(match, agent_id)

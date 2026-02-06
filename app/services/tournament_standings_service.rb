@@ -38,7 +38,11 @@ class TournamentStandingsService
   end
 
   def finished_matches
-    @tournament.matches.where(status: "finished").where.not(result: nil)
+    @tournament.matches
+      .joins(:tournament_pairing)
+      .where(status: "finished")
+      .where.not(result: nil)
+      .where(tournament_pairings: { tournament_id: @tournament.id })
   end
 
   def apply_score(row, score)
