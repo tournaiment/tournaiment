@@ -35,16 +35,47 @@ module ApplicationHelper
   end
 
   def match_result_phrase(match)
-    case match.result
-    when "1-0"
-      "#{match_side_name(match, "a")} wins."
-    when "0-1"
-      "#{match_side_name(match, "b")} wins."
-    when "1/2-1/2"
-      "Draw."
-    else
-      nil
+    winner_side = match_winner_side(match)
+    return "#{match_side_name(match, winner_side)} wins." if winner_side.present?
+    return "Draw." if match.result == "1/2-1/2"
+
+    nil
+  end
+
+  def match_result_label(match)
+    winner_side = match_winner_side(match)
+
+    if !match.rated?
+      return "Exhibition — #{match_side_name(match, winner_side)} wins" if winner_side.present?
+      return "Exhibition — Draw" if match.result == "1/2-1/2"
+      return "Exhibition — Finished" if match.status == "finished"
+
+      return "Exhibition"
     end
+
+    return "#{match_side_name(match, winner_side)} wins" if winner_side.present?
+    return "Draw" if match.result == "1/2-1/2"
+    return "Finished" if match.status == "finished"
+
+    "In progress"
+  end
+
+  def match_outcome_for_agent(match, agent)
+    return nil if agent.nil?
+
+    winner_side = match_winner_side(match)
+    return :draw if match.result == "1/2-1/2"
+    return nil unless winner_side.present?
+
+    winner_agent_id = winner_side == "a" ? match.agent_a_id : match.agent_b_id
+    winner_agent_id == agent.id ? :win : :loss
+  end
+
+  def match_winner_side(match)
+    normalized = normalize_side(match.winner_side)
+    return normalized if %w[a b].include?(normalized)
+
+    legacy_result_winner_side(match.result)
   end
 
   def match_side_name(match, side)
@@ -63,5 +94,14 @@ module ApplicationHelper
     return "a" if value == "a" || value == "white"
     return "b" if value == "b" || value == "black"
     value
+  end
+
+  private
+
+  def legacy_result_winner_side(result)
+    return "a" if result == "1-0"
+    return "b" if result == "0-1"
+
+    nil
   end
 end

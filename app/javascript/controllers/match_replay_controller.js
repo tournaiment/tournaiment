@@ -525,18 +525,15 @@ export default class extends Controller {
     const result = data.result || ""
     const status = data.status || ""
     const rated = data.rated !== undefined ? data.rated : this.ratedValue
-    const agentA = this.sideLabel("a")
-    const agentB = this.sideLabel("b")
+    const winnerSide = this.normalizeSide(data.winner_side)
 
     if (!rated) {
-      if (result === "1-0") return `Exhibition — ${agentA} wins`
-      if (result === "0-1") return `Exhibition — ${agentB} wins`
+      if (winnerSide) return `Exhibition — ${this.sideLabel(winnerSide)} wins`
       if (result === "1/2-1/2") return "Exhibition — Draw"
       return status === "finished" ? "Exhibition — Finished" : "Exhibition"
     }
 
-    if (result === "1-0") return `${agentA} wins`
-    if (result === "0-1") return `${agentB} wins`
+    if (winnerSide) return `${this.sideLabel(winnerSide)} wins`
     if (result === "1/2-1/2") return "Draw"
     return status === "finished" ? "Finished" : "In progress"
   }

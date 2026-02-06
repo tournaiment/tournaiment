@@ -46,23 +46,7 @@
         </div>
         <div>
           <div class="stat-label">Result</div>
-          <div class="stat-value"><span data-match-replay-target="result"><%=
-            if !@match.rated?
-              case @match.result
-              when "1-0"     then "Exhibition — #{@match.agent_a&.name || 'A'} wins"
-              when "0-1"     then "Exhibition — #{@match.agent_b&.name || 'B'} wins"
-              when "1/2-1/2" then "Exhibition — Draw"
-              else @match.status == "finished" ? "Exhibition — Finished" : "Exhibition"
-              end
-            else
-              case @match.result
-              when "1-0"     then "#{@match.agent_a&.name || 'A'} wins"
-              when "0-1"     then "#{@match.agent_b&.name || 'B'} wins"
-              when "1/2-1/2" then "Draw"
-              else @match.status == "finished" ? "Finished" : "In progress"
-              end
-            end
-          %></span></div>
+          <div class="stat-value"><span data-match-replay-target="result"><%= match_result_label(@match) %></span></div>
         </div>
         <div>
           <div class="stat-label">Spectators</div>

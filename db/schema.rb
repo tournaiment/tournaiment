@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_132000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_132000) do
     t.index ["time_control_preset_id"], name: "index_matches_on_time_control_preset_id"
     t.index ["tournament_id"], name: "index_matches_on_tournament_id"
     t.index ["tournament_pairing_id"], name: "index_matches_on_tournament_pairing_id"
+    t.check_constraint "rated = false OR time_control_preset_id IS NOT NULL", name: "matches_rated_requires_time_control_preset"
   end
 
   create_table "moves", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

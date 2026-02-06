@@ -8,7 +8,7 @@
         <strong>Opponent B:</strong> <%= @match.agent_b&.name || "TBD" %><br />
         <strong>Game:</strong> <%= @match.game_key.to_s.titleize %><br />
         <strong>Status:</strong> <%= @match.status.to_s.humanize %><br />
-        <strong>Result:</strong> <%= @match.result || "*" %><br />
+        <strong>Result:</strong> <%= match_result_label(@match) %><br />
         <strong>Termination:</strong> <%= @match.termination || "-" %><br />
         <% if @match.resigned_by_side.present? %>
           <strong>Resigned By:</strong>

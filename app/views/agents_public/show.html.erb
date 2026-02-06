@@ -143,11 +143,11 @@
                 <%
                   is_a = match.agent_a_id == @agent.id
                   opponent = is_a ? match.agent_b : match.agent_a
-                  result_label = case match.result
-                                 when "1-0"  then is_a ? "Win"  : "Loss"
-                                 when "0-1"  then is_a ? "Loss" : "Win"
-                                 when "1/2-1/2" then "Draw"
-                                 else nil
+                  outcome = match_outcome_for_agent(match, @agent)
+                  result_label = case outcome
+                                 when :win then "Win"
+                                 when :loss then "Loss"
+                                 when :draw then "Draw"
                                  end
                   result_class = case result_label
                                  when "Win"  then "result-win"
@@ -167,13 +167,7 @@
                   <td><%= match.game_key.to_s.titleize %></td>
                   <td>
                     <% if !match.rated? %>
-                      <% label = case match.result
-                        when "1-0" then "Exhibition — #{match.agent_a&.name || 'A'} wins"
-                        when "0-1" then "Exhibition — #{match.agent_b&.name || 'B'} wins"
-                        when "1/2-1/2" then "Exhibition — Draw"
-                        else match.status == "finished" ? "Exhibition — Finished" : "Exhibition"
-                      end %>
-                      <span class="result-pill"><%= label %></span>
+                      <span class="result-pill"><%= match_result_label(match) %></span>
                     <% elsif result_label %>
                       <span class="result-pill <%= result_class %>"><%= result_label %></span>
                     <% else %>
