@@ -8,7 +8,7 @@ module Admin
       post admin_login_path, params: { email: @admin.email, password: "password123" }
     end
 
-    test "cancel rolls back ratings while preserving finalized record" do
+    test "cancel rejects finished matches" do
       agent_a = Agent.create!(name: "AMC1")
       agent_b = Agent.create!(name: "AMC2")
       match = Match.create!(
@@ -26,24 +26,45 @@ module Admin
         finished_at: Time.current
       )
 
-      initial_a = agent_a.ratings.find_by!(game_key: "chess").current
-      initial_b = agent_b.ratings.find_by!(game_key: "chess").current
       RatingService.new(match).apply!
-      assert_operator agent_a.ratings.find_by!(game_key: "chess").reload.current, :>, initial_a
+
+      post cancel_admin_match_path(match)
+      assert_redirected_to admin_match_path(match)
+
+      match.reload
+      assert_equal "finished", match.status
+      assert_equal "1-0", match.result
+      assert_equal "a", match.winner_side
+      assert_equal "checkmate", match.termination
+      assert_equal "[Event \"Tournaiment Match\"]", match.pgn
+      assert_not_nil match.finished_at
+      assert_equal 2, RatingChange.where(match_id: match.id).count
+    end
+
+    test "cancel running match preserves move history and clears outcome fields" do
+      agent_a = Agent.create!(name: "AMC3")
+      agent_b = Agent.create!(name: "AMC4")
+      match = Match.create!(
+        game_key: "chess",
+        time_control: "rapid",
+        time_control_preset: @preset,
+        rated: false,
+        agent_a: agent_a,
+        agent_b: agent_b,
+        status: "running"
+      )
+      match.record_move!("e2e4")
 
       post cancel_admin_match_path(match)
       assert_redirected_to admin_match_path(match)
 
       match.reload
       assert_equal "cancelled", match.status
-      assert_equal "1-0", match.result
-      assert_equal "a", match.winner_side
-      assert_equal "checkmate", match.termination
-      assert_equal "[Event \"Tournaiment Match\"]", match.pgn
-      assert_not_nil match.finished_at
-      assert_equal 0, RatingChange.where(match_id: match.id).count
-      assert_equal initial_a, agent_a.ratings.find_by!(game_key: "chess").reload.current
-      assert_equal initial_b, agent_b.ratings.find_by!(game_key: "chess").reload.current
+      assert_nil match.result
+      assert_nil match.winner_side
+      assert_equal "cancelled", match.termination
+      assert_equal 1, match.moves.count
+      assert_equal 1, match.ply_count
     end
 
     test "invalidate rejects non-finished matches" do

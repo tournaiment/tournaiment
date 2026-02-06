@@ -1,4 +1,5 @@
 require "test_helper"
+require "timeout"
 
 class MatchRunnerTest < ActiveSupport::TestCase
   def create_agent(name)
@@ -48,6 +49,15 @@ class MatchRunnerTest < ActiveSupport::TestCase
     yield
   ensure
     singleton.define_method(:start, original_start)
+  end
+
+  def with_stubbed_class_method(klass, method_name, implementation)
+    singleton = class << klass; self; end
+    original = klass.method(method_name)
+    singleton.define_method(method_name, implementation)
+    yield
+  ensure
+    singleton.define_method(method_name, original)
   end
 
   test "resign finishes chess match with correct winner metadata" do
@@ -151,5 +161,57 @@ class MatchRunnerTest < ActiveSupport::TestCase
     assert_equal "a", match.forfeit_by_side
     assert_equal "0-1", match.result
     assert_equal "b", match.winner_side
+  end
+
+  test "cancelled match does not finalize after in-flight move request returns" do
+    a = create_agent("MR11")
+    b = create_agent("MR12")
+    match = build_match(agent_a: a, agent_b: b, game_key: "chess", preset_key: "test_chess_rapid_10p0")
+
+    error = nil
+    with_stubbed_http([ { body: "{\"move\":\"e2e4\"}", sleep: 0.1 } ]) do
+      thread = Thread.new do
+        MatchRunner.new(match).run!
+      rescue StandardError => e
+        error = e
+      end
+
+      Timeout.timeout(2) do
+        loop do
+          break if match.reload.status == "running"
+
+          sleep 0.01
+        end
+      end
+
+      assert match.cancel!
+      thread.join
+    end
+
+    assert_nil error
+    match.reload
+    assert_equal "cancelled", match.status
+    assert_nil match.result
+  end
+
+  test "failed finalization does not persist finished outcome" do
+    a = create_agent("MR13")
+    b = create_agent("MR14")
+    match = build_match(agent_a: a, agent_b: b, game_key: "chess", preset_key: "test_chess_rapid_10p0", rated: true)
+
+    with_stubbed_http([ { body: "{\"move\":\"resign\"}" } ]) do
+      with_stubbed_class_method(ChessRules, :render_record, ->(**_kwargs) { raise "record generation failed" }) do
+        assert_raises RuntimeError do
+          MatchRunner.new(match).run!
+        end
+      end
+    end
+
+    match.reload
+    assert_equal "failed", match.status
+    assert_nil match.result
+    assert_nil match.winner_side
+    assert_nil match.finished_at
+    assert_equal 0, RatingChange.where(match_id: match.id).count
   end
 end

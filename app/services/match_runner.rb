@@ -62,6 +62,10 @@ class MatchRunner
 
       begin
         move_data = @match.record_move!(move)
+      rescue ArgumentError => e
+        raise unless e.message == "Match is not running"
+
+        return
       rescue ChessRules::IllegalMove, ChessRules::BadNotation, ChessRules::InvalidFen, GoRules::IllegalMove
         return finalize!(winner_actor: opponent_for_actor(actor), termination: "illegal_move", actor: actor)
       end
@@ -78,8 +82,8 @@ class MatchRunner
     if running_match?
       @match.fail!
       AuditLog.log!(actor: nil, action: "match.failed", auditable: @match, metadata: { error: e.message })
+      raise
     end
-    raise
   end
 
   private

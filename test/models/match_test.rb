@@ -51,13 +51,31 @@ class MatchTest < ActiveSupport::TestCase
   test "rated match requires preset when no approved preset exists for category" do
     agent_a = build_agent("MTP1")
     agent_b = build_agent("MTP2")
+    locked_unrated = TimeControlPreset.create!(
+      key: "test_chess_rapid_locked_unrated",
+      game_key: "chess",
+      category: "rapid",
+      clock_type: "increment",
+      clock_config: { base_seconds: 600, increment_seconds: 0 },
+      rated_allowed: false
+    )
+    tournament = Tournament.create!(
+      name: "No Rated Preset Cup",
+      status: "running",
+      format: "single_elimination",
+      game_key: "chess",
+      time_control: "rapid",
+      rated: true,
+      locked_time_control_preset: locked_unrated
+    )
 
     match = Match.new(
       agent_a: agent_a,
       agent_b: agent_b,
       game_key: "chess",
       rated: true,
-      time_control: "classical"
+      time_control: "rapid",
+      tournament: tournament
     )
 
     assert_not match.valid?
@@ -100,5 +118,49 @@ class MatchTest < ActiveSupport::TestCase
     assert second[:result].present?
     assert_nil match.reload.result
     assert_equal "running", match.status
+  end
+
+  test "record_move persists compatibility move fields required by database" do
+    agent_a = build_agent("MTC1")
+    agent_b = build_agent("MTC2")
+    match = Match.create!(
+      agent_a: agent_a,
+      agent_b: agent_b,
+      game_key: "chess",
+      rated: false,
+      status: "running"
+    )
+
+    data = match.record_move!("e2e4")
+
+    move = match.moves.order(:ply).last
+    assert_equal "white", move.actor
+    assert_equal "white", move.color
+    assert_equal data[:notation], move.notation
+    assert_equal data[:notation], move.uci
+    assert_equal data[:display], move.display
+    assert_equal data[:display], move.san
+    assert_equal data[:state], move.state
+    assert_equal data[:state], move.fen
+  end
+
+  test "cancel supports pre-run states and running only" do
+    agent_a = build_agent("MTC3")
+    agent_b = build_agent("MTC4")
+
+    created = Match.create!(agent_a: agent_a, agent_b: agent_b, game_key: "chess", rated: false, status: "created")
+    queued = Match.create!(agent_a: agent_a, agent_b: agent_b, game_key: "chess", rated: false, status: "queued")
+    running = Match.create!(agent_a: agent_a, agent_b: agent_b, game_key: "chess", rated: false, status: "running")
+    finished = Match.create!(agent_a: agent_a, agent_b: agent_b, game_key: "chess", rated: false, status: "finished")
+
+    assert created.cancel!
+    assert queued.cancel!
+    assert running.cancel!
+    assert_equal "cancelled", created.reload.status
+    assert_equal "cancelled", queued.reload.status
+    assert_equal "cancelled", running.reload.status
+
+    assert_equal false, finished.cancel!
+    assert_equal "finished", finished.reload.status
   end
 end

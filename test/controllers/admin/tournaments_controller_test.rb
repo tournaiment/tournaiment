@@ -76,7 +76,7 @@ module Admin
       tournament.reload
       match.reload
       assert_equal "cancelled", tournament.status
-      assert_equal "cancelled", match.status
+      assert_equal "invalid", match.status
       assert_equal "1-0", match.result
       assert_equal "a", match.winner_side
       assert_equal "checkmate", match.termination

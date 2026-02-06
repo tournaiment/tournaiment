@@ -17,31 +17,34 @@ module Admin
         return redirect_to admin_match_path(match), alert: "Invalid matches cannot be cancelled."
       end
 
-      was_finished = match.status == "finished"
+      unless %w[created queued running].include?(match.status)
+        return redirect_to admin_match_path(match), alert: "Only created, queued, or running matches can be cancelled."
+      end
 
       match.transaction do
         RatingService.new(match).rollback!
+        cancelled = match.cancel!
+        raise ActiveRecord::Rollback unless cancelled
 
-        if was_finished
-          # Preserve finalized record data even when the match is excluded from rankings.
-          match.update!(status: "cancelled")
-        else
-          match.update!(
-            status: "cancelled",
-            result: nil,
-            winner_side: nil,
-            termination: "cancelled",
-            resigned_by_side: nil,
-            forfeit_by_side: nil,
-            draw_reason: nil
-          )
-          match.moves.delete_all
-          match.update!(pgn: nil, ply_count: 0, current_state: match.initial_state, finished_at: nil, clock_state: {})
-        end
+        match.update!(
+          result: nil,
+          winner_side: nil,
+          termination: "cancelled",
+          resigned_by_side: nil,
+          forfeit_by_side: nil,
+          draw_reason: nil,
+          finished_at: nil
+        )
 
         AuditLog.log!(actor: current_admin, action: "admin.match_cancelled", auditable: match)
       end
-      redirect_to admin_match_path(match), notice: "Match cancelled and ratings rolled back."
+
+      match.reload
+      if match.status == "cancelled"
+        redirect_to admin_match_path(match), notice: "Match cancelled and ratings rolled back."
+      else
+        redirect_to admin_match_path(match), alert: "Match could not be cancelled because its status changed."
+      end
     end
 
     def invalidate

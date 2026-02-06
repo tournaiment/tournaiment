@@ -9,15 +9,14 @@ class AdminTournamentLifecycleService
 
     Tournament.transaction do
       @tournament.matches.find_each do |match|
-        next if %w[cancelled invalid].include?(match.status)
-
-        rollback_rating!(match)
         if match.status == "finished"
-          mark_finished_match!(match, status: "cancelled")
-        else
-          reset_match_to_cancelled!(match)
+          rollback_rating!(match)
+          mark_finished_match!(match, status: "invalid")
+          affected += 1
+        elsif %w[created queued running].include?(match.status)
+          rollback_rating!(match)
+          affected += 1 if reset_match_to_cancelled!(match)
         end
-        affected += 1
       end
 
       @tournament.update!(status: "cancelled", ends_at: Time.current)
@@ -37,14 +36,13 @@ class AdminTournamentLifecycleService
       @tournament.matches.find_each do |match|
         next if match.status == "invalid"
 
-        rollback_rating!(match)
-
         if match.status == "finished"
+          rollback_rating!(match)
           mark_finished_match!(match, status: "invalid")
           affected += 1
-        elsif match.status != "cancelled"
-          reset_match_to_cancelled!(match, termination: "tournament_invalidated")
-          affected += 1
+        elsif %w[created queued running].include?(match.status)
+          rollback_rating!(match)
+          affected += 1 if reset_match_to_cancelled!(match, termination: "tournament_invalidated")
         end
       end
 
@@ -65,23 +63,19 @@ class AdminTournamentLifecycleService
   end
 
   def reset_match_to_cancelled!(match, termination: "tournament_cancelled")
+    return false unless match.cancel!
+
     match.update!(
-      status: "cancelled",
       result: nil,
       winner_side: nil,
       termination: termination,
       resigned_by_side: nil,
       forfeit_by_side: nil,
-      draw_reason: nil
+      draw_reason: nil,
+      finished_at: nil
     )
-    match.moves.delete_all
-    match.update!(
-      pgn: nil,
-      ply_count: 0,
-      current_state: match.initial_state,
-      finished_at: nil,
-      clock_state: {}
-    )
+
+    true
   end
 
   def mark_finished_match!(match, status:)

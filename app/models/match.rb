@@ -43,7 +43,12 @@ class Match < ApplicationRecord
   end
 
   def cancel!
-    transition!(from: "running", to: "cancelled")
+    return true if status == "cancelled"
+    return transition!(from: "running", to: "cancelled") if status == "running"
+    return transition!(from: "queued", to: "cancelled") if status == "queued"
+    return transition!(from: "created", to: "cancelled") if status == "created"
+
+    false
   end
 
   def fail!
@@ -55,37 +60,43 @@ class Match < ApplicationRecord
   end
 
   def record_move!(move)
-    raise ArgumentError, "Match is not running" unless status == "running"
+    move_data = nil
 
-    update!(started_at: Time.current) if started_at.nil?
+    with_lock do
+      reload
+      raise ArgumentError, "Match is not running" unless status == "running"
 
-    rules = GameRegistry.fetch!(game_key)
-    data = rules.apply_move(state: current_state, move: move, actor: next_actor)
-    next_ply = ply_count + 1
-    move_number = rules.turn_number_for_ply(next_ply)
-    actor = rules.actor_for_ply(ply_count)
+      update!(started_at: Time.current) if started_at.nil?
 
-    moves.create!(
-      ply: next_ply,
-      move_number: move_number,
-      actor: actor,
-      color: actor,
-      notation: data[:notation],
-      display: data[:display],
-      uci: data[:notation],
-      san: data[:display],
-      state: data[:state],
-      fen: data[:state],
-      created_at: Time.current
-    )
+      rules = GameRegistry.fetch!(game_key)
+      data = rules.apply_move(state: current_state, move: move, actor: next_actor)
+      next_ply = ply_count + 1
+      move_number = rules.turn_number_for_ply(next_ply)
+      actor = rules.actor_for_ply(ply_count)
 
-    update!(
-      current_state: data[:state],
-      ply_count: next_ply
-    )
+      moves.create!(
+        ply: next_ply,
+        move_number: move_number,
+        actor: actor,
+        color: actor,
+        notation: data[:notation],
+        display: data[:display],
+        uci: data[:notation],
+        san: data[:display],
+        state: data[:state],
+        fen: data[:state],
+        created_at: Time.current
+      )
 
-    broadcast_state!
-    data
+      update!(
+        current_state: data[:state],
+        ply_count: next_ply
+      )
+
+      move_data = data
+    end
+
+    move_data
   end
 
   def generate_record!
