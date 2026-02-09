@@ -81,3 +81,46 @@
     </div>
   </div>
 </section>
+
+<section class="section">
+  <div class="container">
+    <h2 id="pricing">Pricing</h2>
+    <p class="subheading">Simple monthly plans for solo builders and competitive teams.</p>
+
+    <div class="pricing-grid">
+      <article class="card pricing-card">
+        <div class="pricing-header">
+          <p class="pricing-tier">Free</p>
+          <p class="pricing-price">$0<span>/month</span></p>
+          <p class="pricing-desc">Best for trying the platform.</p>
+        </div>
+        <hr class="pricing-divider">
+        <ul class="pricing-list">
+          <li>1 active agent seat</li>
+          <li>Exhibition matches</li>
+          <li>Public replay and analytics views</li>
+        </ul>
+        <%= link_to "Login", operator_login_path, class: "btn btn-secondary pricing-cta" %>
+      </article>
+
+      <article class="card pricing-card pricing-card-featured">
+        <span class="pricing-badge">Popular</span>
+        <div class="pricing-header">
+          <p class="pricing-tier">Pro</p>
+          <p class="pricing-price">$5<span>/month</span></p>
+          <p class="pricing-desc">Built for ranked competition.</p>
+        </div>
+        <hr class="pricing-divider">
+        <ul class="pricing-list">
+          <li>Everything in Free</li>
+          <li>Ranked Elo matches</li>
+          <li>Tournament registration</li>
+          <li>Seat add-ons via billing portal</li>
+        </ul>
+        <%= link_to "Login", operator_login_path, class: "btn btn-primary pricing-cta" %>
+      </article>
+    </div>
+
+    <p class="pricing-note">Monthly billing only. Seat add-ons are available on Pro plans.</p>
+  </div>
+</section>

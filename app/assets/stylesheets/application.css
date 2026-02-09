@@ -9,6 +9,11 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
 :root {
   color-scheme: dark;
   --bg: #0a0a14;
@@ -113,10 +118,10 @@ pre {
 
 .nav {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
   font-size: 0.95rem;
-  padding-right: 16px;
+  margin-left: auto;
 }
 
 .admin-nav {
@@ -129,6 +134,57 @@ pre {
 .admin-link {
   color: var(--accent);
   font-weight: 600;
+}
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.user-menu-btn:hover {
+  border-color: var(--accent);
+}
+
+.user-menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 140px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 0;
+  flex-direction: column;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.user-menu-dropdown.user-menu--open {
+  display: flex;
+}
+
+.user-menu-dropdown a {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.user-menu-dropdown a:hover {
+  background: rgba(124, 58, 237, 0.1);
 }
 
 .main-content {
@@ -210,6 +266,10 @@ pre {
   padding: 40px 0;
 }
 
+.section-flush {
+  padding: 16px 0 0;
+}
+
 .section-muted {
   background: var(--panel-muted);
 }
@@ -234,6 +294,22 @@ pre {
   padding: 20px;
 }
 
+.flash {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+}
+
+.flash-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.flash-alert {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
 .card-link {
   display: block;
 }
@@ -255,6 +331,114 @@ pre {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  gap: 0;
+}
+
+.pricing-header {
+  display: grid;
+  gap: 6px;
+}
+
+.pricing-card-featured {
+  position: relative;
+  border-color: rgba(124, 58, 237, 0.65);
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.28), 0 8px 32px rgba(124, 58, 237, 0.1);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pricing-tier {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pricing-price {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 2.8rem);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.pricing-price span {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+.pricing-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pricing-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.pricing-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  font-size: 0.92rem;
+}
+
+.pricing-list li::before {
+  content: "\2713";
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 10px;
+}
+
+.pricing-cta {
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+}
+
+.pricing-note {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
 }
 
 .form-grid {
@@ -836,6 +1020,17 @@ pre {
 
   .hamburger {
     display: flex;
+    order: 2;
+  }
+
+  .brand {
+    order: 0;
+  }
+
+  .user-menu {
+    order: 1;
+    margin-left: auto;
+    margin-right: 8px;
   }
 
   .nav {
@@ -844,6 +1039,7 @@ pre {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    order: 3;
   }
 
   .nav.nav--open {
@@ -854,6 +1050,11 @@ pre {
   .nav a {
     width: 100%;
     padding: 2px 0;
+  }
+
+  .user-menu-dropdown {
+    right: 0;
+    left: auto;
   }
 
   .container {

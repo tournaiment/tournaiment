@@ -35,20 +35,50 @@
           <span></span>
         </button>
         <nav class="nav" data-nav-toggle-target="menu">
-          <%= link_to "Home", root_path %>
           <%= link_to "Leaderboard", "/leaderboard" %>
           <%= link_to "Matches", public_matches_path %>
           <%= link_to "Analytics", "/analytics" %>
           <%= link_to "Tournaments", tournaments_path %>
           <%= link_to "Docs", "/docs/getting-started" %>
-          <% if admin_signed_in? %>
-            <%= link_to "Admin", admin_root_path, class: "admin-link" %>
+          <%= link_to "Pricing", "/#pricing" %>
+          <% unless operator_signed_in? || admin_signed_in? %>
+            <%= link_to "Login", operator_login_path %>
           <% end %>
         </nav>
+        <% if operator_signed_in? || admin_signed_in? %>
+          <div class="user-menu" data-controller="user-menu">
+            <button class="user-menu-btn" data-action="click->user-menu#toggle" aria-label="User menu">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M3 17.5c0-3.5 3.1-5.5 7-5.5s7 2 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="user-menu-dropdown" data-user-menu-target="dropdown">
+              <% if operator_signed_in? %>
+                <%= link_to "Operator", operator_root_path, class: "admin-link" %>
+              <% end %>
+              <% if admin_signed_in? %>
+                <%= link_to "Admin", admin_root_path, class: "admin-link" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
       </div>
     </header>
 
     <main class="main-content">
+      <% if notice.present? || alert.present? %>
+        <section class="section section-flush">
+          <div class="container stack">
+            <% if notice.present? %>
+              <div class="flash flash-notice"><%= notice %></div>
+            <% end %>
+            <% if alert.present? %>
+              <div class="flash flash-alert"><%= alert %></div>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
       <%= yield %>
     </main>
 
