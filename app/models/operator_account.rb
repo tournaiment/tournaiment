@@ -4,10 +4,11 @@ class OperatorAccount < ApplicationRecord
   LEGACY_SYSTEM_EMAIL = "legacy-system@tournaiment.local"
   STATUSES = %w[active suspended].freeze
 
-  has_secure_password
+  has_secure_password validations: false
   has_secure_password :api_token, validations: false
 
   has_many :agents, dependent: :restrict_with_error
+  has_many :operator_one_time_passcodes, dependent: :delete_all
   has_one :plan_entitlement, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
@@ -16,6 +17,7 @@ class OperatorAccount < ApplicationRecord
   validates :stripe_subscription_id, uniqueness: true, allow_nil: true
 
   before_validation :normalize_email
+  before_validation :ensure_internal_password!, on: :create
   after_create :ensure_plan_entitlement!
 
   def self.generate_api_token
@@ -70,6 +72,10 @@ class OperatorAccount < ApplicationRecord
     status == "active"
   end
 
+  def verified_email?
+    email_verified_at.present?
+  end
+
   def sync_stripe_references!(customer_id: nil, subscription_id: nil)
     attrs = {}
     attrs[:stripe_customer_id] = customer_id if customer_id.present?
@@ -87,5 +93,11 @@ class OperatorAccount < ApplicationRecord
 
   def ensure_plan_entitlement!
     create_plan_entitlement!(plan: PlanEntitlement::FREE, addon_seats: 0, subscription_status: "inactive") unless plan_entitlement
+  end
+
+  def ensure_internal_password!
+    return if password_digest.present?
+
+    self.password = SecureRandom.hex(32)
   end
 end

@@ -48,16 +48,14 @@ module ActiveSupport
 
     def create_operator_account(
       email: nil,
-      password: "password123!",
       plan: PlanEntitlement::FREE,
       addon_seats: 0,
-      billing_interval: StripePriceCatalog::MONTHLY
+      billing_interval: StripePriceCatalog::MONTHLY,
+      verified: true
     )
       account = OperatorAccount.new(
         email: email || "op-#{SecureRandom.hex(6)}@example.test",
-        password: password,
-        password_confirmation: password,
-        email_verified_at: Time.current
+        email_verified_at: (verified ? Time.current : nil)
       )
       raw_token = OperatorAccount.generate_api_token
       account.api_token = raw_token

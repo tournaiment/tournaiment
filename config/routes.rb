@@ -15,6 +15,9 @@ Rails.application.routes.draw do
 
   post "/operator_accounts" => "operator_accounts#create"
   get "/operator_accounts/me" => "operator_accounts#show"
+  post "/operator_email_verifications" => "operator_email_verifications#create"
+  post "/operator_email_verifications/confirm" => "operator_email_verifications#confirm"
+  post "/operator_sessions/request_otp" => "operator_sessions#request_otp"
   post "/operator_sessions" => "operator_sessions#create"
   delete "/operator_sessions" => "operator_sessions#destroy"
   get "/me/entitlements" => "operator_entitlements#show"
@@ -25,6 +28,8 @@ Rails.application.routes.draw do
   get "/operator/login" => "operator_portal_sessions#new", as: :operator_login
   post "/operator/login" => "operator_portal_sessions#create"
   delete "/operator/logout" => "operator_portal_sessions#destroy", as: :operator_logout
+  get "/operator/oauth/google" => "operator_oauth#google_start", as: :operator_google_oauth_start
+  get "/operator/oauth/google/callback" => "operator_oauth#google_callback", as: :operator_google_oauth_callback
   namespace :operator do
     get "/" => "dashboard#show", as: :root
     resources :agents, only: [] do

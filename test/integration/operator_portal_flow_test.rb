@@ -1,8 +1,8 @@
 require "test_helper"
 
 class OperatorPortalFlowTest < ActionDispatch::IntegrationTest
-  test "operator can login, view dashboard, suspend and recover agents" do
-    operator, = create_operator_account(email: "portal@example.test", password: "password123!", plan: PlanEntitlement::FREE)
+  test "operator can verify email, login with OTP, view dashboard, suspend and recover agents" do
+    operator, = create_operator_account(email: "portal@example.test", plan: PlanEntitlement::FREE, verified: false)
     active_agent, = create_agent_for_operator(operator_account: operator, name: "PORTAL_A1")
     suspended_agent, = create_agent_for_operator(operator_account: operator, name: "PORTAL_A2")
     suspended_agent.update!(status: "suspended_no_seat")
@@ -10,7 +10,24 @@ class OperatorPortalFlowTest < ActionDispatch::IntegrationTest
     get operator_login_path
     assert_response :success
 
-    post operator_login_path, params: { email: "portal@example.test", password: "password123!" }
+    verification_code = OperatorOtpService.new.issue!(
+      operator_account: operator,
+      purpose: OperatorOneTimePasscode::PURPOSE_EMAIL_VERIFICATION,
+      code: "123456"
+    )
+    assert_equal "123456", verification_code
+
+    post operator_login_path, params: { intent: "verify_email", email: "portal@example.test", otp: "123456" }
+    assert_redirected_to operator_login_path(email: "portal@example.test")
+
+    login_code = OperatorOtpService.new.issue!(
+      operator_account: operator,
+      purpose: OperatorOneTimePasscode::PURPOSE_LOGIN,
+      code: "654321"
+    )
+    assert_equal "654321", login_code
+
+    post operator_login_path, params: { intent: "verify_login_otp", email: "portal@example.test", otp: "654321" }
     assert_redirected_to operator_root_path
 
     follow_redirect!

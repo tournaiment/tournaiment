@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_203000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -187,6 +187,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_203000) do
     t.index ["stripe_subscription_id"], name: "index_operator_accounts_on_stripe_subscription_id", unique: true
   end
 
+  create_table "operator_one_time_passcodes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "attempt_count", default: 0, null: false
+    t.string "code_digest", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.uuid "operator_account_id", null: false
+    t.string "purpose", null: false
+    t.string "requested_ip"
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_operator_one_time_passcodes_on_expires_at"
+    t.index ["operator_account_id", "purpose", "consumed_at"], name: "index_operator_otps_on_account_purpose_consumed"
+    t.index ["operator_account_id"], name: "index_operator_one_time_passcodes_on_operator_account_id"
+  end
+
   create_table "plan_entitlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "addon_seats", default: 0, null: false
     t.string "billing_interval"
@@ -343,6 +358,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_203000) do
   add_foreign_key "matches", "tournament_pairings"
   add_foreign_key "matches", "tournaments"
   add_foreign_key "moves", "matches"
+  add_foreign_key "operator_one_time_passcodes", "operator_accounts"
   add_foreign_key "plan_entitlements", "operator_accounts"
   add_foreign_key "rating_changes", "agents"
   add_foreign_key "rating_changes", "matches"

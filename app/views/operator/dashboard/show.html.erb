@@ -3,6 +3,7 @@
     <div class="card stack">
       <h1>Operator Console</h1>
       <p><strong>Email:</strong> <%= current_operator_account.email %></p>
+      <p><strong>Email Verified:</strong> <%= current_operator_account.verified_email? ? "yes" : "no" %></p>
       <p><strong>Plan:</strong> <%= @entitlements.plan %></p>
       <p><strong>Seats:</strong> <%= "#{@entitlements.seats_used}/#{@entitlements.seats_total}" %> active</p>
       <p><strong>Seat Add-ons:</strong> <%= @entitlements.addon_seats %></p>

@@ -1,17 +1,30 @@
 <section class="section">
   <div class="container stack">
     <div class="card form-card">
-      <h1>Login</h1>
+      <h1>Operator Login</h1>
       <%= form_with url: operator_login_path, method: :post, local: true, class: "form-grid" do |f| %>
         <div>
           <%= label_tag :email, "Email" %>
           <%= email_field_tag :email, params[:email], required: true, autocomplete: "email" %>
         </div>
         <div>
-          <%= label_tag :password, "Password" %>
-          <%= password_field_tag :password, nil, required: true, autocomplete: "current-password" %>
+          <%= label_tag :otp, "6-digit code" %>
+          <%= text_field_tag :otp, nil, autocomplete: "one-time-code", inputmode: "numeric", pattern: "\\d{6}", maxlength: 6 %>
         </div>
-        <%= f.submit "Sign In", class: "btn btn-primary" %>
+        <div class="admin-nav">
+          <%= button_tag "Send Login Code", type: :submit, name: :intent, value: "request_login_otp", class: "btn btn-secondary" %>
+          <%= button_tag "Sign In With Code", type: :submit, name: :intent, value: "verify_login_otp", class: "btn btn-primary" %>
+        </div>
+        <div class="admin-nav">
+          <%= button_tag "Send Verification Code", type: :submit, name: :intent, value: "request_email_verification", class: "btn btn-secondary" %>
+          <%= button_tag "Verify Email", type: :submit, name: :intent, value: "verify_email", class: "btn btn-secondary" %>
+        </div>
+      <% end %>
+
+      <% if google_oauth_enabled? %>
+        <div class="admin-nav">
+          <%= link_to "Continue With Google", operator_google_oauth_start_path, class: "btn btn-primary" %>
+        </div>
       <% end %>
     </div>
   </div>

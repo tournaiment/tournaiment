@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
-  helper_method :current_admin, :admin_signed_in?, :current_agent, :current_operator_account, :operator_signed_in?
+  helper_method :current_admin, :admin_signed_in?, :current_agent, :current_operator_account, :operator_signed_in?, :google_oauth_enabled?
 
   private
 
@@ -43,6 +43,7 @@ class ApplicationController < ActionController::Base
     account = OperatorAccount.find_by_api_token(token)
     return render_api_error(code: "UNAUTHORIZED", message: "Invalid or missing operator API key.", status: :unauthorized) unless account
     return render_api_error(code: "OPERATOR_SUSPENDED", message: "Operator account is suspended.", status: :forbidden) unless account.active?
+    return render_api_error(code: "EMAIL_NOT_VERIFIED", message: "Operator email is not verified.", status: :forbidden) unless account.verified_email?
 
     @current_operator_account = account
   end
@@ -54,13 +55,19 @@ class ApplicationController < ActionController::Base
   end
 
   def operator_signed_in?
-    current_operator_account.present?
+    account = current_operator_account
+    account.present? && account.active? && account.verified_email?
   end
 
   def require_operator_session!
     return if operator_signed_in?
 
+    session.delete(:operator_account_id)
     redirect_to operator_login_path, alert: "Please sign in."
+  end
+
+  def google_oauth_enabled?
+    GoogleOauthClient.new.configured?
   end
 
   def auth_token_from_headers
