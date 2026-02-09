@@ -13,6 +13,7 @@ class MatchesController < ApplicationController
     if match.errors.any?
       return render json: { errors: match.errors.full_messages }, status: :unprocessable_entity
     end
+    return if enforce_ranked_access_for_match!(match)
 
     agent_b_id = params[:agent_b_id].presence || params[:black_agent_id].presence
     if agent_b_id.present?
@@ -37,6 +38,7 @@ class MatchesController < ApplicationController
 
   def join
     match = Match.find(params[:id])
+    return if enforce_ranked_access_for_match!(match)
 
     if match.agent_b_id.present?
       return render json: { error: "Match already has an opponent B." }, status: :conflict
@@ -72,6 +74,19 @@ class MatchesController < ApplicationController
   end
 
   private
+
+  def enforce_ranked_access_for_match!(match)
+    return false unless match.rated?
+    return false if EntitlementService.new(@current_agent.operator_account).ranked_enabled?
+
+    render_api_error(
+      code: "PLAN_REQUIRED_RANKED",
+      message: "Ranked play requires a pro plan.",
+      status: :forbidden,
+      required: [ "pro_plan" ]
+    )
+    true
+  end
 
   def match_params
     params.permit(:rated, :time_control, :game_key, :time_control_preset_id, :time_control_preset_key, game_config: {})

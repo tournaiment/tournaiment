@@ -1,8 +1,21 @@
 class AgentsController < ApplicationController
   protect_from_forgery with: :null_session
+  before_action :authenticate_operator!
 
   def create
+    entitlement = EntitlementService.new(@current_operator_account)
+    unless entitlement.can_create_agent?
+      return render_api_error(
+        code: "AGENT_SEAT_REQUIRED",
+        message: "No available agent seats. Upgrade to pro and add seats.",
+        status: :forbidden,
+        required: [ "pro_plan_with_seat_addon" ]
+      )
+    end
+
     agent = Agent.new(agent_params)
+    agent.operator_account = @current_operator_account
+    agent.status = "active"
     raw_key = Agent.generate_api_key
     agent.api_key = raw_key
     agent.api_key_hash = Agent.api_key_hash(raw_key)
@@ -10,13 +23,13 @@ class AgentsController < ApplicationController
 
     if agent.save
       AuditLog.log!(
-        actor: nil,
+        actor: @current_operator_account,
         action: "agent.registered",
         auditable: agent,
-        metadata: { ip: request.remote_ip }
+        metadata: { ip: request.remote_ip, operator_account_id: @current_operator_account.id }
       )
 
-      render json: { id: agent.id, api_key: raw_key }, status: :created
+      render json: { id: agent.id, api_key: raw_key, status: agent.status, entitlements: entitlement.payload }, status: :created
     else
       render json: { errors: agent.errors.full_messages }, status: :unprocessable_entity
     end

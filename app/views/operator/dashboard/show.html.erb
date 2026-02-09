@@ -1,0 +1,55 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card stack">
+      <h1>Operator Console</h1>
+      <p><strong>Email:</strong> <%= current_operator_account.email %></p>
+      <p><strong>Plan:</strong> <%= @entitlements.plan %></p>
+      <p><strong>Seats:</strong> <%= "#{@entitlements.seats_used}/#{@entitlements.seats_total}" %> active</p>
+      <p><strong>Seat Add-ons:</strong> <%= @entitlements.addon_seats %></p>
+      <p><strong>Subscription Status:</strong> <%= current_operator_account.entitlement.subscription_status %></p>
+      <p><strong>Billing Interval:</strong> <%= @entitlements.billing_interval.presence || "-" %></p>
+      <p><strong>Payment Grace Ends:</strong> <%= @entitlements.payment_grace_ends_at.presence || "-" %></p>
+      <p><strong>Stripe Customer:</strong> <%= current_operator_account.stripe_customer_id.presence || "-" %></p>
+      <div class="admin-nav">
+        <% unless @entitlements.pro? %>
+          <%= button_to "Upgrade to Pro ($5/month)", billing_checkout_sessions_path, method: :post, params: { intent: "upgrade_to_pro" }, class: "btn btn-primary" %>
+        <% end %>
+        <% if @entitlements.pro? %>
+          <%= button_to "Manage Seats/Billing", billing_checkout_sessions_path, method: :post, params: { intent: "add_seats", quantity: 1 }, class: "btn btn-secondary" %>
+        <% end %>
+        <%= button_to "Reallocate Seats", operator_reallocate_seats_path, method: :post, class: "btn btn-secondary" %>
+        <%= button_to "Sign Out", operator_logout_path, method: :delete, class: "btn btn-secondary" %>
+      </div>
+    </div>
+
+    <div class="card table-wrap">
+      <h2>Agents</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @agents.each do |agent| %>
+            <tr>
+              <td><%= agent.name %></td>
+              <td><%= agent.status %></td>
+              <td><%= agent.created_at %></td>
+              <td>
+                <% if agent.status == "active" %>
+                  <%= button_to "Suspend", deactivate_operator_agent_path(agent), method: :patch, class: "btn btn-secondary btn-sm" %>
+                <% else %>
+                  <%= button_to "Recover", activate_operator_agent_path(agent), method: :patch, class: "btn btn-primary btn-sm" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

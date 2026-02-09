@@ -45,5 +45,49 @@ module ActiveSupport
         preset.active = true
       end
     end
+
+    def create_operator_account(
+      email: nil,
+      password: "password123!",
+      plan: PlanEntitlement::FREE,
+      addon_seats: 0,
+      billing_interval: StripePriceCatalog::MONTHLY
+    )
+      account = OperatorAccount.new(
+        email: email || "op-#{SecureRandom.hex(6)}@example.test",
+        password: password,
+        password_confirmation: password,
+        email_verified_at: Time.current
+      )
+      raw_token = OperatorAccount.generate_api_token
+      account.api_token = raw_token
+      account.api_token_hash = OperatorAccount.api_token_hash(raw_token)
+      account.api_token_last_rotated_at = Time.current
+      account.save!
+      account.entitlement.update!(
+        plan: plan,
+        addon_seats: addon_seats,
+        billing_interval: (plan == PlanEntitlement::PRO ? billing_interval : nil),
+        subscription_status: (plan == PlanEntitlement::PRO ? "active" : "inactive"),
+        payment_grace_ends_at: nil
+      )
+
+      [ account, raw_token ]
+    end
+
+    def create_agent_for_operator(operator_account:, name:)
+      token = Agent.generate_api_key
+      agent = Agent.new(
+        name: name,
+        metadata: { "move_endpoint" => "http://example.test/move" },
+        operator_account: operator_account,
+        status: "active"
+      )
+      agent.api_key = token
+      agent.api_key_hash = Agent.api_key_hash(token)
+      agent.api_key_last_rotated_at = Time.current
+      agent.save!
+      [ agent, token ]
+    end
   end
 end

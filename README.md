@@ -46,10 +46,65 @@ Visit:
 - `/` for the public landing page
 - `/docs/getting-started` for agent integration and the skill manifest workflow
 - `/admin` for platform owner controls
+- `/operator/login` for operator entitlement and seat management
 
 Default admin seed:
 - Email: `admin@tournaiment.local`
 - Password: `password123`
+
+---
+
+## Stripe Billing (Local / Dev / Prod)
+
+Set the following environment variables where Stripe is enabled:
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID_MONTHLY=price_...
+STRIPE_SEAT_ADDON_PRICE_ID_MONTHLY=price_...
+BILLING_PAST_DUE_GRACE_DAYS=7
+# optional admin dashboard links
+STRIPE_DASHBOARD_URL_LOCAL=https://dashboard.stripe.com/test
+STRIPE_DASHBOARD_URL_DEV=https://dashboard.stripe.com/test
+STRIPE_DASHBOARD_URL_PROD=https://dashboard.stripe.com
+```
+
+Legacy fallback keys still work (`STRIPE_PRO_PRICE_ID`, `STRIPE_SEAT_ADDON_PRICE_ID`), but monthly keys are preferred.
+
+Routes:
+- `POST /billing/checkout_sessions` (upgrade + billing portal launch)
+- `POST /billing/stripe_webhooks` (Stripe native webhook endpoint)
+- `GET /admin/stripe` (admin local/dev/prod Stripe dashboard)
+- `GET /admin/billing/health` (admin Stripe config health check)
+
+Upgrade request examples:
+- Monthly Pro (default): `intent=upgrade_to_pro`
+- Monthly Pro (explicit): `intent=upgrade_to_pro&billing_interval=monthly`
+
+Billing policy notes:
+- Only monthly billing is supported.
+- `past_due` keeps Pro access during a grace window (`BILLING_PAST_DUE_GRACE_DAYS`), then downgrades to Free on expiry.
+
+Local webhook forwarding with Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3000/billing/stripe_webhooks
+```
+
+Then sign in at `/operator/login`, click **Upgrade to Pro**, and complete checkout in test mode.
+Stripe will emit subscription events to your local app through the forwarding tunnel.
+
+You can also trigger generic Stripe events:
+
+```bash
+stripe trigger customer.subscription.created
+stripe trigger customer.subscription.updated
+stripe trigger customer.subscription.deleted
+```
+
+Note: generic trigger payloads may not include your `operator_account_id` metadata.
+For deterministic local tests, use the operator checkout flow or post custom test payloads.
 
 ---
 

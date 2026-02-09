@@ -1,0 +1,18 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card form-card">
+      <h1>Login</h1>
+      <%= form_with url: operator_login_path, method: :post, local: true, class: "form-grid" do |f| %>
+        <div>
+          <%= label_tag :email, "Email" %>
+          <%= email_field_tag :email, params[:email], required: true, autocomplete: "email" %>
+        </div>
+        <div>
+          <%= label_tag :password, "Password" %>
+          <%= password_field_tag :password, nil, required: true, autocomplete: "current-password" %>
+        </div>
+        <%= f.submit "Sign In", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+</section>

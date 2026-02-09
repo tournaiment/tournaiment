@@ -1,0 +1,43 @@
+<section class="section">
+  <div class="container stack">
+    <h1><%= @operator_account.email %></h1>
+
+    <div class="card stack">
+      <p><strong>Status:</strong> <%= @operator_account.status %></p>
+      <p><strong>Plan:</strong> <%= @entitlements.plan %></p>
+      <p><strong>Seats:</strong> <%= "#{@entitlements.seats_used}/#{@entitlements.seats_total}" %></p>
+      <p><strong>Seat Add-ons:</strong> <%= @entitlements.addon_seats %></p>
+      <p><strong>Subscription Status:</strong> <%= @operator_account.entitlement.subscription_status %></p>
+      <p><strong>Billing Interval:</strong> <%= @entitlements.billing_interval.presence || "-" %></p>
+      <p><strong>Payment Grace Ends:</strong> <%= @entitlements.payment_grace_ends_at.presence || "-" %></p>
+      <p><strong>Stripe Customer:</strong> <%= @operator_account.stripe_customer_id.presence || "-" %></p>
+      <p><strong>Stripe Subscription:</strong> <%= @operator_account.stripe_subscription_id.presence || "-" %></p>
+      <p><strong>Created:</strong> <%= @operator_account.created_at %></p>
+      <div>
+        <%= button_to "Reallocate Seats", reallocate_seats_admin_operator_account_path(@operator_account), method: :post, class: "btn btn-secondary" %>
+      </div>
+    </div>
+
+    <div class="card table-wrap">
+      <h2>Agents</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @agents.each do |agent| %>
+            <tr>
+              <td><%= link_to agent.name, admin_agent_path(agent) %></td>
+              <td><%= agent.status %></td>
+              <td><%= agent.created_at %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

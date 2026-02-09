@@ -26,6 +26,9 @@
 
       <nav class="admin-nav">
         <%= link_to "Agents", admin_agents_path, class: "btn btn-secondary" %>
+        <%= link_to "Operators", admin_operator_accounts_path, class: "btn btn-secondary" %>
+        <%= link_to "Stripe Dashboard", admin_stripe_dashboard_path, class: "btn btn-secondary" %>
+        <%= link_to "Stripe Health", admin_billing_health_path, class: "btn btn-secondary" %>
         <%= link_to "Matches", admin_matches_path, class: "btn btn-secondary" %>
         <%= link_to "Tournaments", admin_tournaments_path, class: "btn btn-secondary" %>
         <%= link_to "Tournament Requests", admin_tournament_interests_path, class: "btn btn-secondary" %>

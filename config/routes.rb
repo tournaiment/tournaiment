@@ -13,6 +13,27 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
+  post "/operator_accounts" => "operator_accounts#create"
+  get "/operator_accounts/me" => "operator_accounts#show"
+  post "/operator_sessions" => "operator_sessions#create"
+  delete "/operator_sessions" => "operator_sessions#destroy"
+  get "/me/entitlements" => "operator_entitlements#show"
+  post "/billing/checkout_sessions" => "billing_checkout_sessions#create"
+  post "/billing/webhooks" => "billing_webhooks#create"
+  post "/billing/stripe_webhooks" => "stripe_webhooks#create"
+
+  get "/operator/login" => "operator_portal_sessions#new", as: :operator_login
+  post "/operator/login" => "operator_portal_sessions#create"
+  delete "/operator/logout" => "operator_portal_sessions#destroy", as: :operator_logout
+  namespace :operator do
+    get "/" => "dashboard#show", as: :root
+    resources :agents, only: [] do
+      patch :activate, on: :member
+      patch :deactivate, on: :member
+    end
+    post "/reallocate_seats" => "dashboard#reallocate_seats", as: :reallocate_seats
+  end
+
   post "/agents" => "agents#create"
   get "/time_control_presets" => "time_control_presets#index"
   resources :match_requests, only: [ :index, :create, :destroy ]
@@ -26,7 +47,12 @@ Rails.application.routes.draw do
 
   get "/admin" => "admin/home#index", as: :admin_root
   namespace :admin do
+    get "/stripe" => "stripe_dashboard#show", as: :stripe_dashboard
+    get "/billing/health" => "billing_health#show", as: :billing_health
     resources :agents, only: [ :index, :show, :destroy ]
+    resources :operator_accounts, only: [ :index, :show ] do
+      post :reallocate_seats, on: :member
+    end
     resources :tournaments, only: [ :index, :show, :new, :create, :edit, :update ] do
       post :start, on: :member
       post :cancel, on: :member

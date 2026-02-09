@@ -1,0 +1,34 @@
+<section class="section">
+  <div class="container stack">
+    <h1>Operator Accounts</h1>
+
+    <div class="card table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>Seats</th>
+            <th>Suspended</th>
+            <th>Stripe Customer</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @operator_accounts.each do |account| %>
+            <% entitlement = EntitlementService.new(account) %>
+            <% suspended_count = account.agents.count { |agent| agent.status == "suspended_no_seat" } %>
+            <tr>
+              <td><%= link_to account.email, admin_operator_account_path(account) %></td>
+              <td><%= entitlement.plan %></td>
+              <td><%= "#{entitlement.seats_used}/#{entitlement.seats_total}" %></td>
+              <td><%= suspended_count %></td>
+              <td><%= account.stripe_customer_id.presence || "-" %></td>
+              <td><%= account.created_at %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

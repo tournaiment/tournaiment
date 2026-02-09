@@ -1,0 +1,60 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card stack">
+      <h1>Stripe Dashboard</h1>
+      <p><strong>Checked:</strong> <%= @dashboard[:checked_at] %></p>
+      <p><strong>Live verification:</strong> <%= @dashboard[:verify_remote] ? "enabled" : "disabled" %></p>
+      <div class="admin-nav">
+        <%= link_to "Refresh", admin_stripe_dashboard_path, class: "btn btn-secondary" %>
+        <%= link_to "Run Live Verify", admin_stripe_dashboard_path(verify: 1), class: "btn btn-primary" %>
+        <%= link_to "Runtime Health", admin_billing_health_path, class: "btn btn-secondary" %>
+        <%= link_to "Back To Admin", admin_root_path, class: "btn btn-secondary" %>
+      </div>
+    </div>
+
+    <% @dashboard[:profiles].each do |profile| %>
+      <% report = profile[:report] %>
+      <% status = report[:overall_status].to_s %>
+      <% color = status == "ok" ? "#10b981" : (status == "warning" ? "#f59e0b" : "#ef4444") %>
+      <div class="card stack">
+        <h2><%= profile[:label] %></h2>
+        <p><strong>Env File:</strong> <code><%= profile[:env_file] %></code> (<%= profile[:file_exists] ? "found" : "missing" %>)</p>
+        <p>
+          <strong>Dashboard:</strong>
+          <%= link_to profile[:dashboard_url], profile[:dashboard_url], target: "_blank", rel: "noopener" %>
+        </p>
+        <p><strong>Status:</strong> <span style="color: <%= color %>"><%= status.upcase %></span></p>
+        <p>
+          <strong>Counts:</strong>
+          ok=<%= report.dig(:counts, :ok) %>,
+          warning=<%= report.dig(:counts, :warning) %>,
+          error=<%= report.dig(:counts, :error) %>
+        </p>
+      </div>
+
+      <div class="card table-wrap">
+        <h3><%= profile[:label] %> Checks</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Status</th>
+              <th>Message</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% report[:checks].each do |check| %>
+              <tr>
+                <td><%= check[:label] %></td>
+                <td><%= check[:status].to_s.upcase %></td>
+                <td><%= check[:message] %></td>
+                <td><%= check[:value].presence || "-" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</section>

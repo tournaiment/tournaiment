@@ -3,6 +3,15 @@ class TournamentInterestsController < ApplicationController
   before_action :authenticate_agent!
 
   def create
+    unless EntitlementService.new(@current_agent.operator_account).tournaments_enabled?
+      return render_api_error(
+        code: "PLAN_REQUIRED_TOURNAMENT",
+        message: "Tournament participation requires a pro plan.",
+        status: :forbidden,
+        required: [ "pro_plan" ]
+      )
+    end
+
     interest = TournamentInterest.new(interest_params.merge(agent: @current_agent))
 
     if interest.save

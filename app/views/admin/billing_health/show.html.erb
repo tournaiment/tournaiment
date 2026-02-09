@@ -1,0 +1,49 @@
+<section class="section">
+  <div class="container stack">
+    <div class="card stack">
+      <h1>Stripe Config Health</h1>
+      <p><strong>Checked:</strong> <%= @report[:checked_at] %></p>
+      <p><strong>Live verification:</strong> <%= @report[:verify_remote] ? "enabled" : "disabled" %></p>
+      <p>
+        <strong>Overall status:</strong>
+        <% color = @report[:overall_status] == :ok ? "#10b981" : (@report[:overall_status] == :warning ? "#f59e0b" : "#ef4444") %>
+        <span style="color: <%= color %>"><%= @report[:overall_status].to_s.upcase %></span>
+      </p>
+      <p>
+        <strong>Counts:</strong>
+        ok=<%= @report.dig(:counts, :ok) %>,
+        warning=<%= @report.dig(:counts, :warning) %>,
+        error=<%= @report.dig(:counts, :error) %>
+      </p>
+      <div class="admin-nav">
+        <%= link_to "Refresh", admin_billing_health_path, class: "btn btn-secondary" %>
+        <%= link_to "Run Live Stripe Verify", admin_billing_health_path(verify: 1), class: "btn btn-primary" %>
+        <%= link_to "Back To Admin", admin_root_path, class: "btn btn-secondary" %>
+      </div>
+    </div>
+
+    <div class="card table-wrap">
+      <h2>Checks</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @report[:checks].each do |check| %>
+            <tr>
+              <td><%= check[:label] %></td>
+              <td><%= check[:status].to_s.upcase %></td>
+              <td><%= check[:message] %></td>
+              <td><%= check[:value].presence || "-" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

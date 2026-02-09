@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_203000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -31,9 +31,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
     t.text "description"
     t.jsonb "metadata", default: {}, null: false
     t.string "name", null: false
+    t.uuid "operator_account_id", null: false
+    t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
     t.index ["api_key_hash"], name: "index_agents_on_api_key_hash", unique: true
     t.index ["name"], name: "index_agents_on_name", unique: true
+    t.index ["operator_account_id"], name: "index_agents_on_operator_account_id"
+    t.index ["status"], name: "index_agents_on_status"
   end
 
   create_table "audit_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -48,6 +52,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
     t.index ["actor_type", "actor_id"], name: "index_audit_logs_on_actor"
     t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable"
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
+  end
+
+  create_table "billing_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.string "event_type", null: false
+    t.string "external_event_id", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "processed_at"
+    t.string "status", default: "processed", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_type"], name: "index_billing_events_on_event_type"
+    t.index ["external_event_id"], name: "index_billing_events_on_external_event_id", unique: true
+    t.index ["processed_at"], name: "index_billing_events_on_processed_at"
+    t.index ["status"], name: "index_billing_events_on_status"
   end
 
   create_table "match_agent_models", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -146,6 +165,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
     t.index ["match_id", "move_number"], name: "index_moves_on_match_id_and_move_number"
     t.index ["match_id", "ply"], name: "index_moves_on_match_id_and_ply", unique: true
     t.index ["match_id"], name: "index_moves_on_match_id"
+  end
+
+  create_table "operator_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "api_token_digest"
+    t.string "api_token_hash"
+    t.datetime "api_token_last_rotated_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "email_verified_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "password_digest", null: false
+    t.string "status", default: "active", null: false
+    t.string "stripe_customer_id"
+    t.string "stripe_subscription_id"
+    t.datetime "updated_at", null: false
+    t.index ["api_token_hash"], name: "index_operator_accounts_on_api_token_hash", unique: true
+    t.index ["email"], name: "index_operator_accounts_on_email", unique: true
+    t.index ["status"], name: "index_operator_accounts_on_status"
+    t.index ["stripe_customer_id"], name: "index_operator_accounts_on_stripe_customer_id", unique: true
+    t.index ["stripe_subscription_id"], name: "index_operator_accounts_on_stripe_subscription_id", unique: true
+  end
+
+  create_table "plan_entitlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "addon_seats", default: 0, null: false
+    t.string "billing_interval"
+    t.datetime "created_at", null: false
+    t.datetime "current_period_ends_at"
+    t.uuid "operator_account_id", null: false
+    t.datetime "payment_grace_ends_at"
+    t.string "plan", default: "free", null: false
+    t.string "subscription_status", default: "inactive", null: false
+    t.datetime "updated_at", null: false
+    t.index ["billing_interval"], name: "index_plan_entitlements_on_billing_interval"
+    t.index ["operator_account_id"], name: "index_plan_entitlements_on_operator_account_id", unique: true
+    t.index ["payment_grace_ends_at"], name: "index_plan_entitlements_on_payment_grace_ends_at"
+    t.index ["plan"], name: "index_plan_entitlements_on_plan"
+    t.index ["subscription_status"], name: "index_plan_entitlements_on_subscription_status"
   end
 
   create_table "rating_changes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -273,6 +329,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
     t.index ["status"], name: "index_tournaments_on_status"
   end
 
+  add_foreign_key "agents", "operator_accounts"
   add_foreign_key "match_agent_models", "agents"
   add_foreign_key "match_agent_models", "matches"
   add_foreign_key "match_requests", "agents", column: "opponent_agent_id"
@@ -286,6 +343,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_153000) do
   add_foreign_key "matches", "tournament_pairings"
   add_foreign_key "matches", "tournaments"
   add_foreign_key "moves", "matches"
+  add_foreign_key "plan_entitlements", "operator_accounts"
   add_foreign_key "rating_changes", "agents"
   add_foreign_key "rating_changes", "matches"
   add_foreign_key "ratings", "agents"

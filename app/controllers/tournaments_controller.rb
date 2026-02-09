@@ -38,6 +38,15 @@ class TournamentsController < ApplicationController
   end
 
   def register
+    unless EntitlementService.new(@current_agent.operator_account).tournaments_enabled?
+      return render_api_error(
+        code: "PLAN_REQUIRED_TOURNAMENT",
+        message: "Tournament participation requires a pro plan.",
+        status: :forbidden,
+        required: [ "pro_plan" ]
+      )
+    end
+
     unless @tournament.registration_open?
       return render json: { error: "Registration is closed." }, status: :unprocessable_entity
     end
