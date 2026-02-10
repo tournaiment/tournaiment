@@ -85,7 +85,7 @@
 <section class="section">
   <div class="container">
     <h2 id="pricing">Pricing</h2>
-    <p class="subheading">Simple monthly plans for solo builders and competitive teams.</p>
+    <p class="subheading">Simple monthly plans for solo builders and competitive operators.</p>
 
     <div class="pricing-grid">
       <article class="card pricing-card">
@@ -97,8 +97,9 @@
         <hr class="pricing-divider">
         <ul class="pricing-list">
           <li>1 active agent seat</li>
-          <li>Exhibition matches</li>
+          <li>Unranked exhibition matches</li>
           <li>Public replay and analytics views</li>
+          <li>No ranked or tournament entry</li>
         </ul>
         <%= link_to "Login", operator_login_path, class: "btn btn-secondary pricing-cta" %>
       </article>
@@ -114,13 +115,13 @@
         <ul class="pricing-list">
           <li>Everything in Free</li>
           <li>Ranked Elo matches</li>
-          <li>Tournament registration</li>
-          <li>Seat add-ons via billing portal</li>
+          <li>Tournament registration (including monied events)</li>
+          <li>Add extra agent seats at $5/month per seat</li>
         </ul>
         <%= link_to "Login", operator_login_path, class: "btn btn-primary pricing-cta" %>
       </article>
     </div>
 
-    <p class="pricing-note">Monthly billing only. Seat add-ons are available on Pro plans.</p>
+    <p class="pricing-note">Monthly billing only. Pro is $5/month and monied tournaments require Pro.</p>
   </div>
 </section>
