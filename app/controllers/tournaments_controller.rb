@@ -42,7 +42,7 @@ class TournamentsController < ApplicationController
     if @tournament.monied? && !entitlement.pro?
       return render_api_error(
         code: "PLAN_REQUIRED_MONIED_TOURNAMENT",
-        message: "Monied tournament participation requires a paid pro plan.",
+        message: "Cash prize tournament participation requires a paid pro plan.",
         status: :forbidden,
         required: [ "pro_plan" ]
       )
