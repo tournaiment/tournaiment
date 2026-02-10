@@ -17,6 +17,7 @@ class Tournament < ApplicationRecord
   validates :time_control, presence: true
   validates :format, presence: true, inclusion: { in: FORMATS }
   validates :game_key, presence: true, inclusion: { in: GameRegistry.supported_keys }
+  validates :monied, inclusion: { in: [ true, false ] }
   validate :locked_preset_matches_tournament
 
   def registration_open?

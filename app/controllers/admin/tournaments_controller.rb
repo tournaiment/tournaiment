@@ -12,7 +12,8 @@ module Admin
         format: "single_elimination",
         game_key: "chess",
         time_control: "rapid",
-        rated: true
+        rated: true,
+        monied: false
       )
       prepare_form_time_controls
     end
@@ -136,6 +137,7 @@ module Admin
         :game_key,
         :time_control,
         :rated,
+        :monied,
         :max_players,
         :starts_at,
         :ends_at

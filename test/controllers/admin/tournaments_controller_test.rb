@@ -17,23 +17,27 @@ module Admin
           game_key: "chess",
           time_control: "rapid",
           rated: true,
+          monied: true,
           max_players: 8
         }
       }
 
       tournament = Tournament.find_by!(name: "Admin Cup")
+      assert_equal true, tournament.monied
       assert_redirected_to admin_tournament_path(tournament)
 
       patch admin_tournament_path(tournament), params: {
         tournament: {
           name: "Admin Cup Updated",
-          format: "single_elimination"
+          format: "single_elimination",
+          monied: false
         }
       }
 
       tournament.reload
       assert_equal "Admin Cup Updated", tournament.name
       assert_equal "single_elimination", tournament.format
+      assert_equal false, tournament.monied
       assert_redirected_to admin_tournament_path(tournament)
     end
 

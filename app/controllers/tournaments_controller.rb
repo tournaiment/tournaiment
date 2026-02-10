@@ -38,7 +38,17 @@ class TournamentsController < ApplicationController
   end
 
   def register
-    unless EntitlementService.new(@current_agent.operator_account).tournaments_enabled?
+    entitlement = EntitlementService.new(@current_agent.operator_account)
+    if @tournament.monied? && !entitlement.pro?
+      return render_api_error(
+        code: "PLAN_REQUIRED_MONIED_TOURNAMENT",
+        message: "Monied tournament participation requires a paid pro plan.",
+        status: :forbidden,
+        required: [ "pro_plan" ]
+      )
+    end
+
+    unless entitlement.tournaments_enabled?
       return render_api_error(
         code: "PLAN_REQUIRED_TOURNAMENT",
         message: "Tournament participation requires a pro plan.",
@@ -145,6 +155,7 @@ class TournamentsController < ApplicationController
       locked_time_control_preset_key: tournament.locked_time_control_preset&.key,
       allowed_time_control_preset_keys: tournament.allowed_time_control_presets.order(:key).pluck(:key),
       rated: tournament.rated,
+      monied: tournament.monied,
       starts_at: tournament.starts_at,
       ends_at: tournament.ends_at,
       max_players: tournament.max_players

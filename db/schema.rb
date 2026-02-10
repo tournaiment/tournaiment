@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_103000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -332,6 +332,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_220000) do
     t.string "game_key", default: "chess", null: false
     t.uuid "locked_time_control_preset_id"
     t.integer "max_players"
+    t.boolean "monied", default: false, null: false
     t.string "name", null: false
     t.boolean "rated", default: true, null: false
     t.datetime "starts_at"
@@ -341,6 +342,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_220000) do
     t.index ["format"], name: "index_tournaments_on_format"
     t.index ["game_key"], name: "index_tournaments_on_game_key"
     t.index ["locked_time_control_preset_id"], name: "index_tournaments_on_locked_time_control_preset_id"
+    t.index ["monied"], name: "index_tournaments_on_monied"
     t.index ["status"], name: "index_tournaments_on_status"
   end
 

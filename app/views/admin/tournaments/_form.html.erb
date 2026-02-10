@@ -52,6 +52,11 @@
     </div>
 
     <div>
+      <%= form.label :monied, "Monied Tournament" %>
+      <%= form.select :monied, [["Yes", true], ["No", false]] %>
+    </div>
+
+    <div>
       <%= form.label :starts_at %>
       <%= form.datetime_local_field :starts_at %>
     </div>

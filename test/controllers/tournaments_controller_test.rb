@@ -32,4 +32,23 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Bracket not generated yet.", @response.body
   end
+
+  test "index json includes monied flag" do
+    Tournament.create!(
+      name: "Monied API Cup",
+      status: "registration_open",
+      time_control: "rapid",
+      rated: true,
+      monied: true,
+      format: "single_elimination",
+      game_key: "chess"
+    )
+
+    get tournaments_path(format: :json)
+    assert_response :success
+    body = JSON.parse(response.body)
+    payload = body.find { |row| row["name"] == "Monied API Cup" }
+    assert payload.present?
+    assert_equal true, payload["monied"]
+  end
 end

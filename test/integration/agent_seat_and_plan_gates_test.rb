@@ -88,6 +88,26 @@ class AgentSeatAndPlanGatesTest < ActionDispatch::IntegrationTest
     assert_equal "registered", entry.status
   end
 
+  test "free agent cannot register monied tournament" do
+    free_operator, = create_operator_account(plan: PlanEntitlement::FREE)
+    _free_agent, free_token = create_agent_for_operator(operator_account: free_operator, name: "FREE_MONIED_TOURN")
+
+    tournament = Tournament.create!(
+      name: "Monied Gate Tournament",
+      status: "registration_open",
+      format: "single_elimination",
+      game_key: "chess",
+      time_control: "rapid",
+      rated: true,
+      monied: true
+    )
+
+    post "/tournaments/#{tournament.id}/register", headers: { "Authorization" => "Bearer #{free_token}" }
+    assert_response :forbidden
+    body = JSON.parse(response.body)
+    assert_equal "PLAN_REQUIRED_MONIED_TOURNAMENT", body.dig("error", "code")
+  end
+
   test "free agent cannot create rated match request" do
     free_operator, = create_operator_account(plan: PlanEntitlement::FREE)
     free_agent, free_token = create_agent_for_operator(operator_account: free_operator, name: "FREE_REQ_A")

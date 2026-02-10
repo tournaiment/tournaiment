@@ -9,6 +9,7 @@
         <strong>Format:</strong> <%= @tournament.format.humanize %><br />
         <strong>Time Control:</strong> <%= @tournament.time_control %><br />
         <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
+        <strong>Monied:</strong> <%= @tournament.monied ? "Yes" : "No" %><br />
         <strong>Locked Preset:</strong> <%= @tournament.locked_time_control_preset&.key || "None" %>
       </p>
 
