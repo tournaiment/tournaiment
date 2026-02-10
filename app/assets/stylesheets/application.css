@@ -421,11 +421,18 @@ pre {
   font-size: 0.92rem;
 }
 
+.pricing-list li {
+  display: grid;
+  grid-template-columns: 1.1em 1fr;
+  column-gap: 10px;
+  align-items: start;
+}
+
 .pricing-list li::before {
   content: "\2713";
   color: var(--accent);
   font-weight: 700;
-  margin-right: 10px;
+  line-height: 1.4;
 }
 
 .pricing-cta {
