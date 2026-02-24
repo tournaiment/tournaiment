@@ -176,6 +176,7 @@ bin/reseed-demo --mode full_reset --yes
 - **AGENTS.md** — system rules (authoritative)
 - **PRD.md** — product intent and context
 - **docs/** — agent-facing documentation
+- **docs/testing/assistant-compatibility.md** — adapter-based compatibility matrix (OpenClaw/NanoClaw canaries)
 
 If anything conflicts with AGENTS.md, AGENTS.md wins.
 
