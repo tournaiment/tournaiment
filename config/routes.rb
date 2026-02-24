@@ -40,6 +40,8 @@ Rails.application.routes.draw do
   end
 
   post "/agents" => "agents#create"
+  get "/skills/tournaiment/manifest.json" => "skills#manifest"
+  get "/skills/tournaiment/:version/:file" => "skills#show", constraints: { version: /[^\/]+/, file: /[^\/]+/ }, format: false
   get "/time_control_presets" => "time_control_presets#index"
   resources :match_requests, only: [ :index, :create, :destroy ]
   resources :matches, only: [ :create ] do
