@@ -468,16 +468,87 @@ pre {
 .operator-login-card {
   width: min(100%, 460px);
   margin-inline: auto;
+  padding: 32px;
 }
 
-.operator-login-actions {
+.operator-login-card h1 {
+  margin-top: 0;
+}
+
+.operator-login-email {
+  color: var(--ink);
+}
+
+.operator-login-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.otp-input {
+  letter-spacing: 0.4em;
+  font-size: 1.4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.operator-login-secondary {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
   flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-.operator-login-actions .btn {
-  flex: 1 1 170px;
+.operator-login-sep {
+  color: var(--border);
+}
+
+.operator-resend-form {
+  display: inline;
+  margin: 0;
+}
+
+.link-quiet {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.link-quiet:hover {
+  color: var(--ink);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--ink);
+}
+
+.operator-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 20px 0 12px;
+}
+
+.operator-login-divider::before,
+.operator-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .table {
@@ -1106,14 +1177,6 @@ pre {
   }
 
   .cta-row .btn {
-    width: 100%;
-  }
-
-  .operator-login-actions {
-    gap: 8px;
-  }
-
-  .operator-login-actions .btn {
     width: 100%;
   }
 

@@ -1,28 +1,59 @@
 <section class="section">
   <div class="container stack operator-login-shell">
-    <div class="card form-card operator-login-card">
-      <h1>Operator Login</h1>
-      <p class="muted">Enter your email, request a 6-digit code, then submit the code to sign in.</p>
-      <%= form_with url: operator_login_path, method: :post, local: true, class: "form-grid" do |f| %>
-        <div>
-          <%= label_tag :email, "Email" %>
-          <%= email_field_tag :email, params[:email], required: true, autocomplete: "email" %>
+    <div class="card operator-login-card">
+      <h1>Operator Portal</h1>
+
+      <% if params[:email].blank? %>
+
+        <p class="muted">Enter your email to receive a sign-in code.</p>
+
+        <%= form_with url: operator_login_path, method: :post, local: true, class: "form-grid" do |f| %>
+          <div>
+            <%= label_tag :email, "Email address" %>
+            <%= email_field_tag :email, nil, required: true, autocomplete: "email", placeholder: "you@example.com" %>
+          </div>
+          <%= button_tag "Send Code", type: :submit, name: :intent, value: "request_code", class: "btn btn-primary operator-login-btn" %>
+        <% end %>
+
+      <% else %>
+
+        <p class="muted">
+          A 6-digit code was sent to <strong class="operator-login-email"><%= params[:email] %></strong>.
+          Check your inbox and enter it below.
+        </p>
+
+        <%= form_with url: operator_login_path, method: :post, local: true, class: "form-grid" do |f| %>
+          <%= hidden_field_tag :email, params[:email] %>
+          <div>
+            <%= label_tag :otp, "6-digit code" %>
+            <%= text_field_tag :otp, nil,
+                autocomplete: "one-time-code",
+                inputmode: "numeric",
+                pattern: "\\d{6}",
+                maxlength: 6,
+                placeholder: "000000",
+                autofocus: true,
+                class: "otp-input" %>
+          </div>
+          <%= button_tag "Sign In", type: :submit, name: :intent, value: "submit_code", class: "btn btn-primary operator-login-btn" %>
+        <% end %>
+
+        <div class="operator-login-secondary">
+          <%= link_to "← Use a different email", operator_login_path, class: "link-quiet" %>
+          <span class="operator-login-sep" aria-hidden="true">·</span>
+          <%= form_with url: operator_login_path, method: :post, local: true, class: "operator-resend-form" do |f| %>
+            <%= hidden_field_tag :email, params[:email] %>
+            <%= button_tag "Resend code", type: :submit, name: :intent, value: "request_code", class: "btn-link" %>
+          <% end %>
         </div>
-        <div>
-          <%= label_tag :otp, "6-digit code" %>
-          <%= text_field_tag :otp, nil, autocomplete: "one-time-code", inputmode: "numeric", pattern: "\\d{6}", maxlength: 6, placeholder: "123456" %>
-        </div>
-        <div class="operator-login-actions">
-          <%= button_tag "Request Code", type: :submit, name: :intent, value: "request_code", class: "btn btn-secondary" %>
-          <%= button_tag "Submit Code", type: :submit, name: :intent, value: "submit_code", class: "btn btn-primary" %>
-        </div>
+
       <% end %>
 
       <% if google_oauth_enabled? %>
-        <div class="operator-login-actions">
-          <%= link_to "Continue With Google", operator_google_oauth_start_path, class: "btn btn-primary" %>
-        </div>
+        <div class="operator-login-divider"><span>or</span></div>
+        <%= link_to "Continue With Google", operator_google_oauth_start_path, class: "btn btn-secondary operator-login-btn" %>
       <% end %>
+
     </div>
   </div>
 </section>
