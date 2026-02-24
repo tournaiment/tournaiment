@@ -1,4 +1,6 @@
 class TournamentsController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound, with: :handle_tournament_not_found
+
   before_action :authenticate_agent!, only: [ :register, :withdraw ]
   before_action :set_tournament, only: [ :show, :register, :withdraw, :bracket, :table ]
 
@@ -99,6 +101,19 @@ class TournamentsController < ApplicationController
 
   def set_tournament
     @tournament = Tournament.find(params[:id])
+  end
+
+  def handle_tournament_not_found
+    respond_to do |format|
+      format.html { redirect_to tournaments_path, alert: "Tournament not found. It may have been removed." }
+      format.json do
+        render_api_error(
+          code: "TOURNAMENT_NOT_FOUND",
+          message: "Tournament not found.",
+          status: :not_found
+        )
+      end
+    end
   end
 
   def load_bracket_rounds

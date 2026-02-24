@@ -5,7 +5,62 @@
 
   <% if rounds.blank? %>
     <p><%= @tournament.format == "round_robin" ? "Fixtures not generated yet." : "Bracket not generated yet." %></p>
+  <% elsif @tournament.format == "single_elimination" %>
+    <%# ── Single Elimination: horizontal bracket tree ── %>
+    <div class="bracket-tree">
+      <% total_rounds = rounds.size %>
+      <% rounds.each_with_index do |round, ri| %>
+        <%
+          round_label = if ri == total_rounds - 1 && total_rounds > 1
+                          "Final"
+                        elsif ri == total_rounds - 2 && total_rounds > 2
+                          "Semifinal"
+                        else
+                          "Round #{round.round_number}"
+                        end
+          is_first = ri == 0
+          is_last  = ri == total_rounds - 1
+          pairings = round.tournament_pairings.sort_by(&:slot)
+        %>
+        <div class="bracket-round-col">
+          <div class="bracket-round-title"><%= round_label %></div>
+
+          <div class="bracket-matchups">
+            <% pairings.each_slice(2).each do |pair| %>
+              <div class="bracket-pair<%= ' bracket-pair--single' if pair.size == 1 %>">
+                <% pair.each do |pairing| %>
+                  <div class="bracket-matchup<%= ' bracket-matchup--first' if is_first %><%= ' bracket-matchup--last' if is_last %>">
+                    <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.winner_agent_id == pairing.agent_a_id %>">
+                      <span class="bracket-seed-name"><%= pairing.agent_a.name %></span>
+                      <% if pairing.match && pairing.match.result.present? %>
+                        <span class="bracket-seed-score"><%= pairing.match.result %></span>
+                      <% end %>
+                    </div>
+                    <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.agent_b && pairing.winner_agent_id == pairing.agent_b_id %><%= ' bracket-seed--bye' unless pairing.agent_b %>">
+                      <span class="bracket-seed-name"><%= pairing.agent_b&.name || "BYE" %></span>
+                    </div>
+                    <div class="bracket-match-link">
+                      <% if pairing.match %>
+                        <%= link_to public_match_path(pairing.match), class: "btn btn-secondary btn-sm" do %>
+                          Match
+                          <span class="status-badge status-<%= pairing.match.status %>"><%= pairing.match.status.humanize %></span>
+                        <% end %>
+                      <% elsif pairing.bye? %>
+                        <span class="status-badge status-finished">Auto-advance</span>
+                      <% else %>
+                        <span class="status-badge status-pending">Pending</span>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
   <% else %>
+    <%# ── Round Robin: keep the existing flat grid ── %>
     <div class="bracket-grid">
       <% rounds.each do |round| %>
         <div class="card bracket-round">

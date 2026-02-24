@@ -1378,3 +1378,275 @@ pre {
     text-align: center;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Bracket Tree (Single Elimination)
+   ═══════════════════════════════════════════════════════ */
+
+.bracket-tree {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 12px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bracket-round-col {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bracket-round-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 0 8px 12px;
+}
+
+.bracket-matchups {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 8px;
+}
+
+.bracket-pair {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  position: relative;
+}
+
+/* Vertical connector joining two matchups in a pair */
+.bracket-pair:not(.bracket-pair--single)::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  background: var(--border);
+}
+
+/* Horizontal stub from vertical midpoint into next round */
+.bracket-pair:not(.bracket-pair--single)::before {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--border);
+  transform: translateX(0);
+}
+
+.bracket-matchup {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  margin: 0 8px;
+}
+
+/* Horizontal stub: right side of matchup card into gap (except last round) */
+.bracket-matchup:not(.bracket-matchup--last)::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  width: 9px;
+  height: 2px;
+  background: var(--border);
+}
+
+/* Horizontal entry: left side into matchup card (except first round) */
+.bracket-matchup:not(.bracket-matchup--first)::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 50%;
+  width: 21px;
+  height: 2px;
+  background: var(--border);
+}
+
+.bracket-seed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bracket-seed:last-of-type {
+  border-bottom: none;
+}
+
+.bracket-seed--winner {
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.bracket-seed--winner .bracket-seed-name {
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+.bracket-seed--bye {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.bracket-seed-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.bracket-seed-score {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.bracket-match-link {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.bracket-match-link .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Standings Table Enhancements
+   ═══════════════════════════════════════════════════════ */
+
+.standings-table .col-num {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.standings-table .col-pts {
+  font-weight: 700;
+}
+
+.standings-table .col-pos {
+  text-align: center;
+  width: 48px;
+}
+
+/* Position medals */
+.pos-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pos-medal-1 {
+  background: rgba(251, 191, 36, 0.18);
+  border: 2px solid #fbbf24;
+  color: #fbbf24;
+}
+
+.pos-medal-2 {
+  background: rgba(156, 163, 175, 0.18);
+  border: 2px solid #9ca3af;
+  color: #9ca3af;
+}
+
+.pos-medal-3 {
+  background: rgba(180, 120, 60, 0.18);
+  border: 2px solid #cd7f32;
+  color: #cd7f32;
+}
+
+/* Leader row highlight */
+.standings-leader {
+  background: rgba(124, 58, 237, 0.06);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Win-rate bar */
+.col-bar {
+  min-width: 120px;
+}
+
+.win-bar {
+  position: relative;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.win-bar-fill {
+  height: 100%;
+  width: var(--pct);
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.5), rgba(52, 211, 153, 0.8));
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.win-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Status Badge Variants
+   ═══════════════════════════════════════════════════════ */
+
+.status-registration_open {
+  background: rgba(124, 58, 237, 0.2);
+  color: #a78bfa;
+}
+
+.status-cancelled,
+.status-invalid {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Mobile: Bracket & Standings
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 720px) {
+  .bracket-round-col {
+    flex: 0 0 220px;
+  }
+
+  .col-bar {
+    min-width: 80px;
+  }
+}

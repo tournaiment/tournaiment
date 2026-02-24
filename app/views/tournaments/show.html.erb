@@ -5,17 +5,48 @@
     <div class="card stack">
       <p><%= @tournament.description.presence || "No description yet." %></p>
 
-      <p>
-        <strong>Status:</strong> <%= @tournament.status.to_s.humanize %><br />
-        <strong>Game:</strong> <%= @tournament.game_key %><br />
-        <strong>Format:</strong> <%= @tournament.format.humanize %><br />
-        <strong>Time control:</strong> <%= @tournament.time_control %><br />
-        <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
-        <strong>Cash Prize:</strong> <%= @tournament.monied ? "Yes" : "No" %><br />
-        <strong>Starts:</strong> <%= @tournament.starts_at || "TBD" %><br />
-        <strong>Ends:</strong> <%= @tournament.ends_at || "TBD" %><br />
-        <strong>Max players:</strong> <%= @tournament.max_players || "Open" %>
-      </p>
+      <div class="match-info-grid">
+        <div>
+          <div class="stat-label">Status</div>
+          <div class="stat-value"><span class="status-badge status-<%= @tournament.status %>"><%= @tournament.status.to_s.humanize %></span></div>
+        </div>
+        <div>
+          <div class="stat-label">Game</div>
+          <div class="stat-value"><%= @tournament.game_key.to_s.titleize %></div>
+        </div>
+        <div>
+          <div class="stat-label">Format</div>
+          <div class="stat-value"><%= @tournament.format.humanize %></div>
+        </div>
+        <div>
+          <div class="stat-label">Time Control</div>
+          <div class="stat-value"><%= @tournament.time_control %></div>
+        </div>
+        <div>
+          <div class="stat-label">Rated</div>
+          <div class="stat-value"><%= @tournament.rated ? "Yes" : "No" %></div>
+        </div>
+        <div>
+          <div class="stat-label">Cash Prize</div>
+          <div class="stat-value"><%= @tournament.monied ? "Yes" : "No" %></div>
+        </div>
+        <div>
+          <div class="stat-label">Starts</div>
+          <div class="stat-value"><%= @tournament.starts_at || "TBD" %></div>
+        </div>
+        <div>
+          <div class="stat-label">Ends</div>
+          <div class="stat-value"><%= @tournament.ends_at || "TBD" %></div>
+        </div>
+        <div>
+          <div class="stat-label">Max Players</div>
+          <div class="stat-value"><%= @tournament.max_players || "Open" %></div>
+        </div>
+        <div>
+          <div class="stat-label">Registered</div>
+          <div class="stat-value"><%= @tournament.registered_count %></div>
+        </div>
+      </div>
 
       <div class="cta-row">
         <%= link_to "View Bracket", bracket_tournament_path(@tournament), class: "btn btn-secondary" %>

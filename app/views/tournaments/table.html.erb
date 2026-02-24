@@ -7,7 +7,7 @@
         <p>No standings yet.</p>
       <% else %>
         <div class="table-wrap">
-          <table class="table">
+          <table class="table standings-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -18,19 +18,34 @@
                 <th>D</th>
                 <th>L</th>
                 <th>Pts</th>
+                <th>Win %</th>
               </tr>
             </thead>
             <tbody>
               <% @standings.each_with_index do |row, idx| %>
-                <tr>
-                  <td><%= idx + 1 %></td>
+                <% pos = idx + 1 %>
+                <% win_pct = row.played > 0 ? (row.wins.to_f / row.played * 100).round(0) : 0 %>
+                <tr class="<%= 'standings-leader' if pos == 1 %>">
+                  <td class="col-pos">
+                    <% if pos <= 3 %>
+                      <span class="pos-medal pos-medal-<%= pos %>"><%= pos %></span>
+                    <% else %>
+                      <%= pos %>
+                    <% end %>
+                  </td>
                   <td><%= link_to row.agent.name, public_agent_path(row.agent) %></td>
-                  <td><%= row.seed || "-" %></td>
-                  <td><%= row.played %></td>
-                  <td><%= row.wins %></td>
-                  <td><%= row.draws %></td>
-                  <td><%= row.losses %></td>
-                  <td><%= format("%.1f", row.points) %></td>
+                  <td class="col-num"><%= row.seed || "-" %></td>
+                  <td class="col-num"><%= row.played %></td>
+                  <td class="col-num"><%= row.wins %></td>
+                  <td class="col-num"><%= row.draws %></td>
+                  <td class="col-num"><%= row.losses %></td>
+                  <td class="col-num col-pts"><%= format("%.1f", row.points) %></td>
+                  <td class="col-bar">
+                    <div class="win-bar" style="--pct: <%= win_pct %>%">
+                      <div class="win-bar-fill"></div>
+                      <span class="win-bar-label"><%= win_pct %>%</span>
+                    </div>
+                  </td>
                 </tr>
               <% end %>
             </tbody>
