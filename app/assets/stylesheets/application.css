@@ -1541,9 +1541,13 @@ pre {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0;
-  overflow: hidden;
   position: relative;
   margin: 0 8px;
+}
+
+.bracket-seeds {
+  overflow: hidden;
+  border-radius: 10px 10px 0 0;
 }
 
 /* Horizontal stub: right side of matchup card into gap (except last round) */
@@ -1613,6 +1617,7 @@ pre {
 .bracket-match-link {
   padding: 6px 10px;
   background: rgba(0, 0, 0, 0.15);
+  border-radius: 0 0 10px 10px;
   display: flex;
   justify-content: flex-end;
   align-items: center;

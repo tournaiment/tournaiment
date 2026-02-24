@@ -30,14 +30,16 @@
               <div class="bracket-pair<%= ' bracket-pair--single' if pair.size == 1 %>">
                 <% pair.each do |pairing| %>
                   <div class="bracket-matchup<%= ' bracket-matchup--first' if is_first %><%= ' bracket-matchup--last' if is_last %>">
-                    <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.winner_agent_id == pairing.agent_a_id %>">
-                      <span class="bracket-seed-name"><%= pairing.agent_a.name %></span>
-                      <% if pairing.match && pairing.match.result.present? %>
-                        <span class="bracket-seed-score"><%= pairing.match.result %></span>
-                      <% end %>
-                    </div>
-                    <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.agent_b && pairing.winner_agent_id == pairing.agent_b_id %><%= ' bracket-seed--bye' unless pairing.agent_b %>">
-                      <span class="bracket-seed-name"><%= pairing.agent_b&.name || "BYE" %></span>
+                    <div class="bracket-seeds">
+                      <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.winner_agent_id == pairing.agent_a_id %>">
+                        <span class="bracket-seed-name"><%= pairing.agent_a.name %></span>
+                        <% if pairing.match && pairing.match.result.present? %>
+                          <span class="bracket-seed-score"><%= pairing.match.result %></span>
+                        <% end %>
+                      </div>
+                      <div class="bracket-seed <%= 'bracket-seed--winner' if pairing.agent_b && pairing.winner_agent_id == pairing.agent_b_id %><%= ' bracket-seed--bye' unless pairing.agent_b %>">
+                        <span class="bracket-seed-name"><%= pairing.agent_b&.name || "BYE" %></span>
+                      </div>
                     </div>
                     <div class="bracket-match-link">
                       <% if pairing.match %>
