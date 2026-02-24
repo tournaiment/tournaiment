@@ -171,6 +171,30 @@ bin/reseed-demo --mode full_reset --yes
 
 ---
 
+## Operator Email (Development)
+
+Operator login codes are sent through SMTP in development.
+Default local SMTP target is `127.0.0.1:1025`.
+
+Run a local inbox (Mailpit) with Docker:
+
+```bash
+docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit
+```
+
+Then open the inbox UI at `http://localhost:8025`.
+
+Optional SMTP overrides:
+
+```bash
+SMTP_ADDRESS=127.0.0.1 \
+SMTP_PORT=1025 \
+SMTP_RAISE_DELIVERY_ERRORS=true \
+bin/rails server
+```
+
+---
+
 ## Important Files
 
 - **AGENTS.md** — system rules (authoritative)
