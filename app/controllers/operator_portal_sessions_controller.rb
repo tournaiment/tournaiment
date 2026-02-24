@@ -12,18 +12,12 @@ class OperatorPortalSessionsController < ApplicationController
     end
 
     case intent
-    when "request_login_otp", ""
-      return unless enforce_otp_request_rate_limits!(email)
-      handle_login_otp_request(email)
-    when "verify_login_otp"
-      return unless enforce_otp_verify_rate_limits!(email)
-      handle_login_otp_verify(email)
-    when "request_email_verification"
-      return unless enforce_verification_request_rate_limits!(email)
-      handle_verification_request(email)
-    when "verify_email"
-      return unless enforce_verification_confirm_rate_limits!(email)
-      handle_verification_confirm(email)
+    when "request_code", "request_login_otp", "request_email_verification", ""
+      return unless enforce_code_request_rate_limits!(email)
+      handle_code_request(email)
+    when "submit_code", "verify_login_otp", "verify_email"
+      return unless enforce_code_submit_rate_limits!(email)
+      handle_code_submit(email)
     else
       flash.now[:alert] = "Unsupported login action."
       render :new, status: :unprocessable_entity
@@ -46,7 +40,7 @@ class OperatorPortalSessionsController < ApplicationController
     (params[:otp].presence || params[:code].presence).to_s.gsub(/\D/, "")[0, 6]
   end
 
-  def handle_login_otp_request(email)
+  def handle_code_request(email)
     operator = OperatorAccount.find_by(email: email)
     if operator&.active? && operator.verified_email?
       code = OperatorOtpService.new.issue!(
@@ -56,47 +50,8 @@ class OperatorPortalSessionsController < ApplicationController
       )
       OperatorAuthMailer.login_otp(operator_account: operator, code: code).deliver_now
       AuditLog.log!(actor: operator, action: "operator_account.portal_login_otp_requested", metadata: { ip: request.remote_ip })
-      redirect_to operator_login_path(email: email), notice: "A login code was sent to your email."
+      redirect_to operator_login_path(email: email), notice: "A 6-digit code was sent to your email."
     elsif operator&.active?
-      redirect_to operator_login_path(email: email), alert: "Email is not verified. Request a verification code first."
-    else
-      redirect_to operator_login_path(email: email), notice: "If the account exists, a login code was sent."
-    end
-  end
-
-  def handle_login_otp_verify(email)
-    code = normalized_code
-    if code.blank?
-      flash.now[:alert] = "Enter the 6-digit login code."
-      return render :new, status: :unprocessable_entity
-    end
-
-    operator = OperatorAccount.find_by(email: email)
-    unless operator&.active? && operator.verified_email?
-      AuditLog.log!(actor: operator, action: "operator_account.portal_login_failed", metadata: { ip: request.remote_ip, email: email })
-      flash.now[:alert] = "Invalid email or login code."
-      return render :new, status: :unauthorized
-    end
-
-    result = OperatorOtpService.new.verify!(
-      operator_account: operator,
-      purpose: OperatorOneTimePasscode::PURPOSE_LOGIN,
-      code: code
-    )
-    unless result.success?
-      AuditLog.log!(actor: operator, action: "operator_account.portal_login_failed", metadata: { ip: request.remote_ip, email: email })
-      flash.now[:alert] = "Invalid email or login code."
-      return render :new, status: :unauthorized
-    end
-
-    session[:operator_account_id] = operator.id
-    AuditLog.log!(actor: operator, action: "operator_account.portal_login", metadata: { ip: request.remote_ip })
-    redirect_to operator_root_path
-  end
-
-  def handle_verification_request(email)
-    operator = OperatorAccount.find_by(email: email)
-    if operator&.active? && !operator.verified_email?
       code = OperatorOtpService.new.issue!(
         operator_account: operator,
         purpose: OperatorOneTimePasscode::PURPOSE_EMAIL_VERIFICATION,
@@ -104,26 +59,40 @@ class OperatorPortalSessionsController < ApplicationController
       )
       OperatorAuthMailer.email_verification_otp(operator_account: operator, code: code).deliver_now
       AuditLog.log!(actor: operator, action: "operator_account.portal_email_verification_requested", metadata: { ip: request.remote_ip })
+      redirect_to operator_login_path(email: email), notice: "A 6-digit code was sent to your email."
+    else
+      redirect_to operator_login_path(email: email), notice: "If the account exists, a 6-digit code was sent."
     end
-
-    redirect_to operator_login_path(email: email), notice: "If the account exists, a verification code was sent."
   end
 
-  def handle_verification_confirm(email)
+  def handle_code_submit(email)
     code = normalized_code
     if code.blank?
-      flash.now[:alert] = "Enter the 6-digit verification code."
+      flash.now[:alert] = "Enter the 6-digit code."
       return render :new, status: :unprocessable_entity
     end
 
     operator = OperatorAccount.find_by(email: email)
     unless operator&.active?
-      flash.now[:alert] = "Invalid email or verification code."
+      AuditLog.log!(actor: operator, action: "operator_account.portal_login_failed", metadata: { ip: request.remote_ip, email: email })
+      flash.now[:alert] = "Invalid email or code."
       return render :new, status: :unauthorized
     end
 
     if operator.verified_email?
-      return redirect_to operator_login_path(email: email), notice: "Email is already verified."
+      result = OperatorOtpService.new.verify!(
+        operator_account: operator,
+        purpose: OperatorOneTimePasscode::PURPOSE_LOGIN,
+        code: code
+      )
+      unless result.success?
+        AuditLog.log!(actor: operator, action: "operator_account.portal_login_failed", metadata: { ip: request.remote_ip, email: email })
+        flash.now[:alert] = "Invalid email or code."
+        return render :new, status: :unauthorized
+      end
+
+      complete_login(operator)
+      return
     end
 
     result = OperatorOtpService.new.verify!(
@@ -132,13 +101,38 @@ class OperatorPortalSessionsController < ApplicationController
       code: code
     )
     unless result.success?
-      flash.now[:alert] = "Invalid email or verification code."
+      AuditLog.log!(actor: operator, action: "operator_account.portal_login_failed", metadata: { ip: request.remote_ip, email: email })
+      flash.now[:alert] = "Invalid email or code."
       return render :new, status: :unauthorized
     end
 
     operator.update!(email_verified_at: Time.current)
     AuditLog.log!(actor: operator, action: "operator_account.portal_email_verified", metadata: { ip: request.remote_ip })
-    redirect_to operator_login_path(email: email), notice: "Email verified. Request a login code to sign in."
+    complete_login(operator)
+  end
+
+  def complete_login(operator)
+    session[:operator_account_id] = operator.id
+    AuditLog.log!(actor: operator, action: "operator_account.portal_login", metadata: { ip: request.remote_ip })
+    redirect_to operator_root_path
+  end
+
+  def enforce_code_request_rate_limits!(email)
+    operator = OperatorAccount.find_by(email: email)
+    if operator&.active? && !operator.verified_email?
+      enforce_verification_request_rate_limits!(email)
+    else
+      enforce_otp_request_rate_limits!(email)
+    end
+  end
+
+  def enforce_code_submit_rate_limits!(email)
+    operator = OperatorAccount.find_by(email: email)
+    if operator&.active? && !operator.verified_email?
+      enforce_verification_confirm_rate_limits!(email)
+    else
+      enforce_otp_verify_rate_limits!(email)
+    end
   end
 
   def enforce_otp_request_rate_limits!(email)

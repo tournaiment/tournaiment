@@ -461,6 +461,25 @@ pre {
   max-width: 420px;
 }
 
+.operator-login-shell {
+  justify-items: center;
+}
+
+.operator-login-card {
+  width: min(100%, 460px);
+  margin-inline: auto;
+}
+
+.operator-login-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.operator-login-actions .btn {
+  flex: 1 1 170px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -1087,6 +1106,14 @@ pre {
   }
 
   .cta-row .btn {
+    width: 100%;
+  }
+
+  .operator-login-actions {
+    gap: 8px;
+  }
+
+  .operator-login-actions .btn {
     width: 100%;
   }
 
