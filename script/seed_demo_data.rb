@@ -69,9 +69,13 @@ module DemoSeed
     planned: "Demo Planning Cup",
     open_registration: "Demo Open Registration League",
     open_cash_prize: "Demo Cash Prize Open",
+    open_capacity: "Demo Near Capacity Open",
     live_knockout: "Demo Live Knockout",
+    live_bye_knockout: "Demo Live Bye Bracket",
     live_round_robin: "Demo Live Round Robin",
+    live_round_robin_marathon: "Demo Marathon Round Robin",
     live_cash_prize: "Demo Cash Prize Showdown",
+    finished_mega_knockout: "Demo Mega Bracket Finals",
     finished_knockout: "Demo Finished Knockout",
     finished_round_robin: "Demo Finished Round Robin",
     finished_cash_prize: "Demo Cash Prize Classic",
@@ -173,6 +177,14 @@ module DemoSeed
         clock_type: "byoyomi",
         clock_config: { main_time_seconds: 600, period_time_seconds: 30, periods: 5 },
         rated_allowed: true
+      },
+      {
+        key: "go_blitz_5p3",
+        game_key: "go",
+        category: "blitz",
+        clock_type: "increment",
+        clock_config: { base_seconds: 300, increment_seconds: 3 },
+        rated_allowed: false
       }
     ]
 
@@ -491,9 +503,13 @@ module DemoSeed
     seed_planned_tournament(agents)
     seed_open_registration_tournament(agents)
     seed_open_cash_prize_tournament(agents)
+    seed_open_capacity_tournament(agents)
     seed_live_knockout_tournament(agents)
+    seed_live_bye_knockout_tournament(agents)
     seed_live_round_robin_tournament(agents)
+    seed_live_round_robin_marathon_tournament(agents)
     seed_live_cash_prize_tournament(agents)
+    seed_finished_mega_knockout_tournament(agents)
     seed_finished_knockout_tournament(agents)
     seed_finished_round_robin_tournament(agents)
     seed_finished_cash_prize_tournament(agents)
@@ -607,6 +623,33 @@ module DemoSeed
     ensure_entries!(tournament, agents.rotate(3).first(8))
   end
 
+  def seed_open_capacity_tournament(agents)
+    return if agents.length < 12
+
+    tournament = build_demo_tournament!(
+      :open_capacity,
+      {
+        description: "Registration is almost full and supports multiple time control presets.",
+        status: "registration_open",
+        format: "single_elimination",
+        game_key: "go",
+        time_control: "blitz",
+        rated: false,
+        monied: false,
+        max_players: 12,
+        starts_at: 10.hours.from_now,
+        ends_at: nil
+      },
+      allowed_preset_keys: %w[go_blitz_5p3 go_rapid_10m_5x30],
+      locked_preset_key: nil
+    )
+    return if tournament.tournament_entries.exists?
+
+    pool = agents.rotate(6)
+    ensure_entries!(tournament, pool.first(11))
+    ensure_entry_status!(tournament, pool[11], status: "withdrawn")
+  end
+
   def seed_live_knockout_tournament(agents)
     tournament = build_demo_tournament!(
       :live_knockout,
@@ -674,6 +717,96 @@ module DemoSeed
       agent_b: players[5],
       pairing_status: "running",
       match_status: "queued"
+    )
+  end
+
+  def seed_live_bye_knockout_tournament(agents)
+    return if agents.length < 8
+
+    tournament = build_demo_tournament!(
+      :live_bye_knockout,
+      {
+        description: "Live bracket featuring BYE auto-advance and pending next rounds.",
+        status: "running",
+        format: "single_elimination",
+        game_key: "chess",
+        time_control: "bullet",
+        rated: false,
+        monied: false,
+        max_players: 8,
+        starts_at: 16.hours.ago,
+        ends_at: nil
+      },
+      allowed_preset_keys: %w[chess_bullet_1p0],
+      locked_preset_key: "chess_bullet_1p0"
+    )
+    return if tournament.tournament_rounds.exists?
+
+    players = agents.rotate(10).first(7)
+    ensure_entries!(tournament, players)
+
+    round1 = tournament.tournament_rounds.create!(round_number: 1, status: "running", started_at: 8.hours.ago)
+    round2 = tournament.tournament_rounds.create!(round_number: 2, status: "pending")
+    round3 = tournament.tournament_rounds.create!(round_number: 3, status: "pending")
+
+    quarter_1 = create_pairing_with_match!(
+      tournament: tournament,
+      round: round1,
+      slot: 1,
+      agent_a: players[0],
+      agent_b: players[1],
+      pairing_status: "finished",
+      match_status: "finished",
+      result: "1-0",
+      started_at: 8.hours.ago,
+      finished_at: 7.hours.ago
+    )
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round1,
+      slot: 2,
+      agent_a: players[2],
+      agent_b: players[3],
+      pairing_status: "running",
+      match_status: "running",
+      started_at: 45.minutes.ago
+    )
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round1,
+      slot: 3,
+      agent_a: players[4],
+      agent_b: players[5],
+      pairing_status: "running",
+      match_status: "queued"
+    )
+    bye_pairing = create_bye_pairing!(
+      tournament: tournament,
+      round: round1,
+      slot: 4,
+      agent: players[6]
+    )
+
+    create_pending_pairing!(
+      tournament: tournament,
+      round: round2,
+      slot: 1,
+      agent_a: quarter_1.winner_agent,
+      agent_b: bye_pairing.winner_agent
+    )
+    create_pending_pairing!(
+      tournament: tournament,
+      round: round2,
+      slot: 2,
+      agent_a: players[2],
+      agent_b: players[4]
+    )
+    create_pending_pairing!(
+      tournament: tournament,
+      round: round3,
+      slot: 1,
+      agent_a: players[0],
+      agent_b: players[2]
     )
   end
 
@@ -772,6 +905,118 @@ module DemoSeed
     )
   end
 
+  def seed_live_round_robin_marathon_tournament(agents)
+    return if agents.length < 6
+
+    tournament = build_demo_tournament!(
+      :live_round_robin_marathon,
+      {
+        description: "Six-player season with completed, running, and upcoming rounds.",
+        status: "running",
+        format: "round_robin",
+        game_key: "chess",
+        time_control: "classical",
+        rated: true,
+        monied: false,
+        max_players: 6,
+        starts_at: 6.days.ago,
+        ends_at: nil
+      },
+      allowed_preset_keys: %w[chess_classical_30p0],
+      locked_preset_key: "chess_classical_30p0"
+    )
+    return if tournament.tournament_rounds.exists?
+
+    players = agents.rotate(14).first(6)
+    ensure_entries!(tournament, players)
+
+    rounds = [
+      tournament.tournament_rounds.create!(round_number: 1, status: "finished", started_at: 6.days.ago, finished_at: 5.days.ago),
+      tournament.tournament_rounds.create!(round_number: 2, status: "finished", started_at: 5.days.ago, finished_at: 4.days.ago),
+      tournament.tournament_rounds.create!(round_number: 3, status: "finished", started_at: 4.days.ago, finished_at: 3.days.ago),
+      tournament.tournament_rounds.create!(round_number: 4, status: "running", started_at: 2.days.ago),
+      tournament.tournament_rounds.create!(round_number: 5, status: "pending")
+    ]
+
+    schedule = [
+      [ [ 0, 5 ], [ 1, 4 ], [ 2, 3 ] ],
+      [ [ 0, 4 ], [ 5, 3 ], [ 1, 2 ] ],
+      [ [ 0, 3 ], [ 4, 2 ], [ 5, 1 ] ],
+      [ [ 0, 2 ], [ 3, 1 ], [ 4, 5 ] ],
+      [ [ 0, 1 ], [ 2, 5 ], [ 3, 4 ] ]
+    ]
+
+    finished_results = [
+      [ "1-0", "0-1", "1/2-1/2" ],
+      [ "0-1", "1-0", "1-0" ],
+      [ "1/2-1/2", "0-1", "1-0" ]
+    ]
+
+    rounds.first(3).each_with_index do |round, round_idx|
+      schedule[round_idx].each_with_index do |pair, slot_idx|
+        round_start = round.started_at || (6.days.ago + round_idx.days)
+        create_pairing_with_match!(
+          tournament: tournament,
+          round: round,
+          slot: slot_idx + 1,
+          agent_a: players[pair[0]],
+          agent_b: players[pair[1]],
+          pairing_status: "finished",
+          match_status: "finished",
+          result: finished_results[round_idx][slot_idx],
+          started_at: round_start + 1.hour,
+          finished_at: round_start + 2.hours
+        )
+      end
+    end
+
+    round4 = rounds[3]
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round4,
+      slot: 1,
+      agent_a: players[schedule[3][0][0]],
+      agent_b: players[schedule[3][0][1]],
+      pairing_status: "finished",
+      match_status: "finished",
+      result: "1-0",
+      started_at: (round4.started_at || 2.days.ago) + 1.hour,
+      finished_at: (round4.started_at || 2.days.ago) + 2.hours
+    )
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round4,
+      slot: 2,
+      agent_a: players[schedule[3][1][0]],
+      agent_b: players[schedule[3][1][1]],
+      pairing_status: "running",
+      match_status: "running",
+      started_at: 55.minutes.ago
+    )
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round4,
+      slot: 3,
+      agent_a: players[schedule[3][2][0]],
+      agent_b: players[schedule[3][2][1]],
+      pairing_status: "running",
+      match_status: "queued"
+    )
+
+    round5 = rounds[4]
+    schedule[4].each_with_index do |pair, slot_idx|
+      create_pairing_with_match!(
+        tournament: tournament,
+        round: round5,
+        slot: slot_idx + 1,
+        agent_a: players[pair[0]],
+        agent_b: players[pair[1]],
+        pairing_status: "pending",
+        match_status: "created"
+      )
+    end
+  end
+
   def seed_live_cash_prize_tournament(agents)
     tournament = build_demo_tournament!(
       :live_cash_prize,
@@ -839,6 +1084,114 @@ module DemoSeed
       agent_b: players[5],
       pairing_status: "running",
       match_status: "queued"
+    )
+  end
+
+  def seed_finished_mega_knockout_tournament(agents)
+    return if agents.length < 16
+
+    tournament = build_demo_tournament!(
+      :finished_mega_knockout,
+      {
+        description: "Completed 16-player bracket for large-layout and deep-round testing.",
+        status: "finished",
+        format: "single_elimination",
+        game_key: "chess",
+        time_control: "rapid",
+        rated: true,
+        monied: false,
+        max_players: 16,
+        starts_at: 40.days.ago,
+        ends_at: 36.days.ago
+      },
+      allowed_preset_keys: %w[chess_rapid_10p0],
+      locked_preset_key: "chess_rapid_10p0"
+    )
+    return if tournament.tournament_rounds.exists?
+
+    players = agents.first(16)
+    ensure_entries!(tournament, players)
+
+    round1 = tournament.tournament_rounds.create!(round_number: 1, status: "finished", started_at: 40.days.ago, finished_at: 39.days.ago)
+    round2 = tournament.tournament_rounds.create!(round_number: 2, status: "finished", started_at: 39.days.ago, finished_at: 38.days.ago)
+    round3 = tournament.tournament_rounds.create!(round_number: 3, status: "finished", started_at: 38.days.ago, finished_at: 37.days.ago)
+    round4 = tournament.tournament_rounds.create!(round_number: 4, status: "finished", started_at: 37.days.ago, finished_at: 36.days.ago)
+
+    round_one_pairs = [
+      [ 0, 15 ],
+      [ 7, 8 ],
+      [ 4, 11 ],
+      [ 3, 12 ],
+      [ 5, 10 ],
+      [ 2, 13 ],
+      [ 6, 9 ],
+      [ 1, 14 ]
+    ]
+    quarterfinalists = []
+    round_one_pairs.each_with_index do |pair, slot_idx|
+      result = slot_idx.even? ? "1-0" : "0-1"
+      pairing = create_pairing_with_match!(
+        tournament: tournament,
+        round: round1,
+        slot: slot_idx + 1,
+        agent_a: players[pair[0]],
+        agent_b: players[pair[1]],
+        pairing_status: "finished",
+        match_status: "finished",
+        result: result,
+        started_at: 40.days.ago + 1.hour,
+        finished_at: 40.days.ago + 2.hours
+      )
+      quarterfinalists << pairing.winner_agent
+    end
+
+    semifinalists = []
+    quarterfinalists.each_slice(2).each_with_index do |pair, slot_idx|
+      result = slot_idx.even? ? "1-0" : "0-1"
+      pairing = create_pairing_with_match!(
+        tournament: tournament,
+        round: round2,
+        slot: slot_idx + 1,
+        agent_a: pair[0],
+        agent_b: pair[1],
+        pairing_status: "finished",
+        match_status: "finished",
+        result: result,
+        started_at: 39.days.ago + 1.hour,
+        finished_at: 39.days.ago + 2.hours
+      )
+      semifinalists << pairing.winner_agent
+    end
+
+    finalists = []
+    semifinalists.each_slice(2).each_with_index do |pair, slot_idx|
+      result = slot_idx.zero? ? "1-0" : "0-1"
+      pairing = create_pairing_with_match!(
+        tournament: tournament,
+        round: round3,
+        slot: slot_idx + 1,
+        agent_a: pair[0],
+        agent_b: pair[1],
+        pairing_status: "finished",
+        match_status: "finished",
+        result: result,
+        started_at: 38.days.ago + 1.hour,
+        finished_at: 38.days.ago + 2.hours
+      )
+      finalists << pairing.winner_agent
+    end
+
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round4,
+      slot: 1,
+      agent_a: finalists[0],
+      agent_b: finalists[1],
+      pairing_status: "finished",
+      match_status: "finished",
+      result: "1-0",
+      started_at: 37.days.ago + 1.hour,
+      finished_at: 37.days.ago + 2.hours
     )
   end
 
@@ -1203,6 +1556,13 @@ module DemoSeed
     end
   end
 
+  def ensure_entry_status!(tournament, agent, status:, seed: nil)
+    entry = TournamentEntry.find_or_initialize_by(tournament: tournament, agent: agent)
+    entry.status = status
+    entry.seed = seed
+    entry.save!
+  end
+
   def time_control_preset_for_tournament(tournament)
     scope = TimeControlPreset.active.where(game_key: tournament.game_key)
     scope = scope.where(rated_allowed: true) if tournament.rated?
@@ -1239,6 +1599,31 @@ module DemoSeed
     )
 
     pairing
+  end
+
+  def create_bye_pairing!(tournament:, round:, slot:, agent:)
+    TournamentPairing.create!(
+      tournament: tournament,
+      tournament_round: round,
+      slot: slot,
+      agent_a: agent,
+      agent_b: nil,
+      status: "finished",
+      bye: true,
+      winner_agent: agent
+    )
+  end
+
+  def create_pending_pairing!(tournament:, round:, slot:, agent_a:, agent_b:)
+    TournamentPairing.create!(
+      tournament: tournament,
+      tournament_round: round,
+      slot: slot,
+      agent_a: agent_a,
+      agent_b: agent_b,
+      status: "pending",
+      bye: false
+    )
   end
 
   def create_tournament_match!(tournament:, pairing:, match_status:, result:, started_at:, finished_at:)
@@ -1382,21 +1767,23 @@ module DemoSeed
   end
 
   def agent_names
-    target = (ENV["SEED_AGENTS"] || "24").to_i
-    names = BASE_AGENT_NAMES.dup
-    return names.first(target) if target <= names.length
+    @agent_names ||= begin
+      target = (ENV["SEED_AGENTS"] || "24").to_i
+      names = BASE_AGENT_NAMES.dup
+      if target > names.length
+        used = names.to_h { |name| [ name, true ] }
+        while names.length < target
+          prefix = AGENT_PREFIXES.sample
+          suffix = AGENT_SUFFIXES.sample
+          candidate = "#{prefix}#{suffix}"
+          next if used[candidate]
 
-    used = names.to_h { |name| [ name, true ] }
-    while names.length < target
-      prefix = AGENT_PREFIXES.sample
-      suffix = AGENT_SUFFIXES.sample
-      candidate = "#{prefix}#{suffix}"
-      next if used[candidate]
-
-      used[candidate] = true
-      names << candidate
+          used[candidate] = true
+          names << candidate
+        end
+      end
+      names.first(target)
     end
-    names
   end
 
   def load_chess_pgn_games
