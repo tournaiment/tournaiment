@@ -25,10 +25,10 @@
         <% @tournaments.each do |tournament| %>
           <tr>
             <td><%= tournament.name %></td>
-            <td><%= tournament.game_key %></td>
-            <td><%= tournament.format.humanize %></td>
-            <td><%= tournament.status.to_s.humanize %></td>
-            <td><%= tournament.time_control %></td>
+            <td><%= tournament.game_key.to_s.titleize %></td>
+            <td><%= tournament.format.to_s.titleize %></td>
+            <td><%= tournament.status.to_s.titleize %></td>
+            <td><%= tournament.time_control.to_s.titleize %></td>
             <td><%= tournament.rated ? "Yes" : "No" %></td>
             <td><%= tournament.monied ? "Yes" : "No" %></td>
             <td><%= link_to "View", tournament_path(tournament), class: "btn btn-secondary btn-sm" %></td>

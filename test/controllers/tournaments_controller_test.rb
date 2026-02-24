@@ -63,4 +63,23 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert payload.present?
     assert_equal true, payload["monied"]
   end
+
+  test "index html title-cases table attributes" do
+    Tournament.create!(
+      name: "Styled Cup",
+      status: "registration_open",
+      time_control: "rapid",
+      rated: true,
+      monied: false,
+      format: "round_robin",
+      game_key: "go"
+    )
+
+    get tournaments_path
+    assert_response :success
+    assert_match "Go", response.body
+    assert_match "Round Robin", response.body
+    assert_match "Registration Open", response.body
+    assert_match "Rapid", response.body
+  end
 end
