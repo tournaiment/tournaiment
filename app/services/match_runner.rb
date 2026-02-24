@@ -1,12 +1,14 @@
 require "net/http"
 require "json"
+require "openssl"
+require "securerandom"
 
 class MatchRunner
   class AgentUnavailable < StandardError; end
 
   MAX_PLIES = 500
   MAX_WALL_CLOCK = 20.minutes
-  AGENT_TIMEOUT = 5.seconds
+  DEFAULT_AGENT_TIMEOUT_SECONDS = 5.0
 
   def initialize(match)
     @match = match
@@ -103,6 +105,8 @@ class MatchRunner
 
   def request_move(agent, actor)
     rules = GameRegistry.fetch!(@match.game_key)
+    request_id = SecureRandom.uuid
+    timeout_seconds = agent_timeout_seconds
     payload = {
       match_id: @match.id,
       game: @match.game_key,
@@ -110,6 +114,8 @@ class MatchRunner
       state: @match.current_state,
       turn_number: rules.turn_number_for_ply(@match.ply_count + 1),
       time_remaining_seconds: @clock.time_remaining_seconds(actor),
+      response_timeout_seconds: timeout_seconds,
+      request_id: request_id,
       rated: @match.rated,
       tournament_id: @match.tournament_id,
       opponent_agent_id: opponent_for(actor)&.id,
@@ -122,15 +128,19 @@ class MatchRunner
     }
 
     endpoint = agent.metadata["move_endpoint"].to_s
-    raise AgentUnavailable, "Agent move endpoint missing" if endpoint.empty?
-
-    uri = URI.parse(endpoint)
+    uri = AgentEndpointPolicy.validate_move_endpoint!(endpoint)
+    timestamp = Time.current.to_i.to_s
+    body = JSON.generate(payload)
     response = nil
 
-    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: AGENT_TIMEOUT, read_timeout: AGENT_TIMEOUT) do |http|
+    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: timeout_seconds, read_timeout: timeout_seconds) do |http|
       request = Net::HTTP::Post.new(uri.request_uri)
       request["Content-Type"] = "application/json"
-      request.body = JSON.generate(payload)
+      request["X-Tournaiment-Timestamp"] = timestamp
+      request["X-Tournaiment-Request-Id"] = request_id
+      signature = signature_for(agent, timestamp, body)
+      request["X-Tournaiment-Signature"] = signature if signature.present?
+      request.body = body
       response = http.request(request)
     end
 
@@ -142,7 +152,7 @@ class MatchRunner
     move = body.fetch("move", "").to_s
     raise AgentUnavailable, "Agent move missing" if move.empty?
     move
-  rescue JSON::ParserError, SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
+  rescue AgentEndpointPolicy::InvalidEndpoint, JSON::ParserError, SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
     raise AgentUnavailable, e.message
   end
 
@@ -263,5 +273,22 @@ class MatchRunner
     return "b" if actor == rules.actors.second
 
     nil
+  end
+
+  def agent_timeout_seconds
+    raw = ENV.fetch("AGENT_MOVE_TIMEOUT_SECONDS", DEFAULT_AGENT_TIMEOUT_SECONDS.to_s)
+    timeout = Float(raw)
+    return DEFAULT_AGENT_TIMEOUT_SECONDS if timeout <= 0.0
+
+    timeout
+  rescue ArgumentError, TypeError
+    DEFAULT_AGENT_TIMEOUT_SECONDS
+  end
+
+  def signature_for(agent, timestamp, body)
+    secret = agent.metadata["move_secret"].presence || ENV["TOURNAIMENT_MOVE_SECRET"].presence
+    return nil if secret.blank?
+
+    OpenSSL::HMAC.hexdigest("SHA256", secret, "#{timestamp}.#{body}")
   end
 end

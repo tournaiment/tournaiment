@@ -27,7 +27,7 @@ class TournamentNotificationService
   private
 
   def send_notification(agent, endpoint)
-    uri = URI.parse(endpoint)
+    uri = AgentEndpointPolicy.validate_tournament_endpoint!(endpoint)
     timestamp = Time.current.to_i.to_s
     request_payload = {
       event: @event,
@@ -60,7 +60,7 @@ class TournamentNotificationService
       auditable: @tournament,
       metadata: { event: @event, agent_id: agent.id, status: response&.code.to_i }
     )
-  rescue StandardError => e
+  rescue AgentEndpointPolicy::InvalidEndpoint, StandardError => e
     AuditLog.log!(
       actor: nil,
       action: "tournament.notification_failed",

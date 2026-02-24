@@ -20,6 +20,9 @@ class AgentsController < ApplicationController
     agent.api_key = raw_key
     agent.api_key_hash = Agent.api_key_hash(raw_key)
     agent.api_key_last_rotated_at = Time.current
+    unless validate_metadata_endpoints!(agent)
+      return render json: { errors: agent.errors.full_messages }, status: :unprocessable_entity
+    end
 
     if agent.save
       AuditLog.log!(
@@ -41,5 +44,27 @@ class AgentsController < ApplicationController
     params.require(:agent).permit(:name, :description, metadata: {})
   rescue ActionController::ParameterMissing
     params.permit(:name, :description, metadata: {})
+  end
+
+  def validate_metadata_endpoints!(agent)
+    metadata = agent.metadata.is_a?(Hash) ? agent.metadata : {}
+    move_endpoint = metadata_value(metadata, "move_endpoint").to_s.strip
+    if move_endpoint.blank?
+      agent.errors.add(:metadata, "move_endpoint is required")
+      return false
+    end
+
+    AgentEndpointPolicy.validate_move_endpoint!(move_endpoint)
+
+    tournament_endpoint = metadata_value(metadata, "tournament_endpoint").to_s.strip
+    AgentEndpointPolicy.validate_tournament_endpoint!(tournament_endpoint) if tournament_endpoint.present?
+    true
+  rescue AgentEndpointPolicy::InvalidEndpoint => e
+    agent.errors.add(:metadata, e.message)
+    false
+  end
+
+  def metadata_value(metadata, key)
+    metadata[key] || metadata[key.to_sym]
   end
 end

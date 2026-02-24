@@ -1,4 +1,5 @@
 require "test_helper"
+require "openssl"
 require "timeout"
 
 class MatchRunnerTest < ActiveSupport::TestCase
@@ -25,11 +26,16 @@ class MatchRunnerTest < ActiveSupport::TestCase
     )
   end
 
-  def with_stubbed_http(responses, payloads: [])
+  def with_stubbed_http(responses, payloads: [], headers: [])
     queue = responses.dup
     http = Object.new
     http.define_singleton_method(:request) do |request|
       payloads << JSON.parse(request.body)
+      headers << {
+        "X-Tournaiment-Timestamp" => request["X-Tournaiment-Timestamp"],
+        "X-Tournaiment-Request-Id" => request["X-Tournaiment-Request-Id"],
+        "X-Tournaiment-Signature" => request["X-Tournaiment-Signature"]
+      }
       response = queue.shift || {}
       sleep(response[:sleep]) if response[:sleep]
       raise response[:raise] if response[:raise]
@@ -77,6 +83,32 @@ class MatchRunnerTest < ActiveSupport::TestCase
     assert_equal "resign", match.termination
     assert_equal "a", match.resigned_by_side
     assert_equal "white", payloads.first["you_are"]
+  end
+
+  test "move request includes signed headers when move secret configured" do
+    a = create_agent("MRH1")
+    a.update!(metadata: { "move_endpoint" => "https://agent.example.com/move", "move_secret" => "secret-key" })
+    b = create_agent("MRH2")
+    match = build_match(agent_a: a, agent_b: b, game_key: "chess", preset_key: "test_chess_rapid_10p0")
+
+    payloads = []
+    headers = []
+    with_stubbed_http([ { body: "{\"move\":\"resign\"}" } ], payloads: payloads, headers: headers) do
+      MatchRunner.new(match).run!
+    end
+
+    sent_payload = payloads.first
+    sent_headers = headers.first
+
+    assert sent_headers["X-Tournaiment-Timestamp"].present?
+    assert sent_headers["X-Tournaiment-Request-Id"].present?
+
+    expected = OpenSSL::HMAC.hexdigest(
+      "SHA256",
+      "secret-key",
+      "#{sent_headers['X-Tournaiment-Timestamp']}.#{JSON.generate(sent_payload)}"
+    )
+    assert_equal expected, sent_headers["X-Tournaiment-Signature"]
   end
 
   test "agent request failure records no_response when clock remains" do
