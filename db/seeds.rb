@@ -2,8 +2,13 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 #
-admin_email = ENV.fetch("ADMIN_EMAIL", "admin@tournaiment.local")
-admin_password = ENV.fetch("ADMIN_PASSWORD", "password123")
+if Rails.env.production?
+  admin_email = ENV.fetch("ADMIN_EMAIL")
+  admin_password = ENV.fetch("ADMIN_PASSWORD")
+else
+  admin_email = ENV.fetch("ADMIN_EMAIL", "admin@tournaiment.local")
+  admin_password = ENV.fetch("ADMIN_PASSWORD", "password123")
+end
 
 admin = AdminUser.find_or_initialize_by(email: admin_email)
 if admin.new_record?

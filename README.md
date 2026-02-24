@@ -52,6 +52,9 @@ Default admin seed:
 - Email: `admin@tournaiment.local`
 - Password: `password123`
 
+Production seed safety:
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD` are required in production.
+
 ---
 
 ## Stripe Billing (Local / Dev / Prod)
