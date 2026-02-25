@@ -96,6 +96,53 @@ module ApplicationHelper
     value
   end
 
+  def local_datetime_tag(value, fallback: "TBD")
+    return fallback if value.blank?
+
+    utc_time = value.utc
+    fallback_label = utc_time.strftime("%b %-d, %Y %-I:%M %p UTC")
+    time_tag(
+      utc_time,
+      fallback_label,
+      data: {
+        controller: "local-time",
+        local_time_iso_value: utc_time.iso8601
+      }
+    )
+  end
+
+  def tournament_datetime_tag(value, time_zone:, fallback: "TBD")
+    return fallback if value.blank?
+
+    zone = ActiveSupport::TimeZone[time_zone] || ActiveSupport::TimeZone[Tournament::DEFAULT_TIME_ZONE]
+    zoned_time = value.in_time_zone(zone)
+    content_tag(:span, "#{zoned_time.strftime('%b %-d, %Y %-I:%M %p')} (#{zone.tzinfo.name})")
+  end
+
+  def dual_datetime_display(value, tournament_time_zone:, fallback: "TBD")
+    local_value = value.present? ? local_datetime_tag(value, fallback: fallback) : fallback
+    tournament_value = value.present? ? tournament_datetime_tag(value, time_zone: tournament_time_zone, fallback: fallback) : fallback
+
+    content_tag(:div, class: "stack") do
+      safe_join([
+        content_tag(:div) do
+          safe_join([
+            content_tag(:span, "Your time:", class: "stat-label"),
+            " ",
+            local_value
+          ])
+        end,
+        content_tag(:div) do
+          safe_join([
+            content_tag(:span, "Tournament time:", class: "stat-label"),
+            " ",
+            tournament_value
+          ])
+        end
+      ])
+    end
+  end
+
   private
 
   def legacy_result_winner_side(result)

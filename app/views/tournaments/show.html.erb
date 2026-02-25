@@ -32,11 +32,11 @@
         </div>
         <div>
           <div class="stat-label">Starts</div>
-          <div class="stat-value"><%= @tournament.starts_at || "TBD" %></div>
+          <div class="stat-value"><%= dual_datetime_display(@tournament.starts_at, tournament_time_zone: @tournament.time_zone) %></div>
         </div>
         <div>
           <div class="stat-label">Ends</div>
-          <div class="stat-value"><%= @tournament.ends_at || "TBD" %></div>
+          <div class="stat-value"><%= dual_datetime_display(@tournament.ends_at, tournament_time_zone: @tournament.time_zone) %></div>
         </div>
         <div>
           <div class="stat-label">Max Players</div>

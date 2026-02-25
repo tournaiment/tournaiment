@@ -238,6 +238,7 @@ module Admin
         format: "single_elimination",
         game_key: "chess",
         time_control: "rapid",
+        time_zone: "Asia/Singapore",
         rated: true
       )
       agent = Agent.create!(name: "ATN1")
@@ -254,6 +255,9 @@ module Admin
       assert_match "Notification Delivery", @response.body
       assert_match "match_assigned", @response.body
       assert_match agent.name, @response.body
+      assert_match "Your time:", @response.body
+      assert_match "Tournament time:", @response.body
+      assert_match "Asia/Singapore", @response.body
     end
   end
 end

@@ -1,4 +1,4 @@
-<%= form_with model: [:admin, tournament], class: "form-grid" do |form| %>
+<%= form_with model: [:admin, tournament], class: "form-grid", data: { controller: "timezone-preview" } do |form| %>
   <% if tournament.errors.any? %>
     <div class="card" style="border-color: var(--accent-2)">
       <strong><%= pluralize(tournament.errors.count, "error") %> prevented saving:</strong>
@@ -43,7 +43,7 @@
 
     <div>
       <%= form.label :time_zone, "Tournament Time Zone" %>
-      <%= form.select :time_zone, options_for_select(@time_zone_options, tournament.time_zone), {}, class: "input" %>
+      <%= form.select :time_zone, options_for_select(@time_zone_options, tournament.time_zone), {}, class: "input", data: { timezone_preview_target: "timeZone", action: "change->timezone-preview#refresh" } %>
     </div>
 
     <div>
@@ -63,12 +63,14 @@
 
     <div>
       <%= form.label :starts_at %>
-      <%= form.datetime_local_field :starts_at, value: tournament.starts_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M") %>
+      <%= form.datetime_local_field :starts_at, value: tournament.starts_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M"), data: { timezone_preview_target: "startsInput", action: "input->timezone-preview#refresh change->timezone-preview#refresh" } %>
+      <p class="muted" data-timezone-preview-target="startsPreview">Stored as UTC: -</p>
     </div>
 
     <div>
       <%= form.label :ends_at %>
-      <%= form.datetime_local_field :ends_at, value: tournament.ends_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M") %>
+      <%= form.datetime_local_field :ends_at, value: tournament.ends_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M"), data: { timezone_preview_target: "endsInput", action: "input->timezone-preview#refresh change->timezone-preview#refresh" } %>
+      <p class="muted" data-timezone-preview-target="endsPreview">Stored as UTC: -</p>
     </div>
   </div>
   <p class="muted">Starts/Ends are interpreted in the selected tournament timezone and stored in UTC.</p>

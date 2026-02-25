@@ -10,8 +10,20 @@
         <strong>Time Control:</strong> <%= @tournament.time_control %><br />
         <strong>Rated:</strong> <%= @tournament.rated ? "Yes" : "No" %><br />
         <strong>Cash Prize:</strong> <%= @tournament.monied ? "Yes" : "No" %><br />
-        <strong>Locked Preset:</strong> <%= @tournament.locked_time_control_preset&.key || "None" %>
+        <strong>Locked Preset:</strong> <%= @tournament.locked_time_control_preset&.key || "None" %><br />
+        <strong>Tournament Time Zone:</strong> <%= @tournament.time_zone %>
       </p>
+
+      <div class="stack">
+        <div>
+          <strong>Starts:</strong>
+          <%= dual_datetime_display(@tournament.starts_at, tournament_time_zone: @tournament.time_zone) %>
+        </div>
+        <div>
+          <strong>Ends:</strong>
+          <%= dual_datetime_display(@tournament.ends_at, tournament_time_zone: @tournament.time_zone) %>
+        </div>
+      </div>
 
       <div class="card stack">
         <h2>Preset Rules</h2>
