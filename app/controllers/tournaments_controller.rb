@@ -100,7 +100,7 @@ class TournamentsController < ApplicationController
   private
 
   def set_tournament
-    @tournament = Tournament.find(params[:id])
+    @tournament = Tournament.find(Tournament.id_from_param!(params[:id]))
   end
 
   def handle_tournament_not_found
@@ -167,6 +167,7 @@ class TournamentsController < ApplicationController
       format: tournament.format,
       game_key: tournament.game_key,
       time_control: tournament.time_control,
+      time_zone: tournament.time_zone,
       locked_time_control_preset_key: tournament.locked_time_control_preset&.key,
       allowed_time_control_preset_keys: tournament.allowed_time_control_presets.order(:key).pluck(:key),
       rated: tournament.rated,

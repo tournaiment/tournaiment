@@ -24,6 +24,7 @@ module Admin
 
       tournament = Tournament.find_by!(name: "Admin Cup")
       assert_equal true, tournament.monied
+      assert_equal "UTC", tournament.time_zone
       assert_redirected_to admin_tournament_path(tournament)
 
       patch admin_tournament_path(tournament), params: {
@@ -39,6 +40,55 @@ module Admin
       assert_equal "single_elimination", tournament.format
       assert_equal false, tournament.monied
       assert_redirected_to admin_tournament_path(tournament)
+    end
+
+    test "admin stores starts and ends in utc from selected tournament timezone" do
+      post admin_tournaments_path, params: {
+        tournament: {
+          name: "Zoned Cup",
+          status: "registration_open",
+          format: "single_elimination",
+          game_key: "chess",
+          time_control: "rapid",
+          time_zone: "Asia/Singapore",
+          starts_at: "2026-01-15T09:30",
+          ends_at: "2026-01-15T12:00",
+          rated: true
+        }
+      }
+
+      tournament = Tournament.find_by!(name: "Zoned Cup")
+      assert_equal "Asia/Singapore", tournament.time_zone
+      assert_equal Time.utc(2026, 1, 15, 1, 30, 0), tournament.starts_at.utc
+      assert_equal Time.utc(2026, 1, 15, 4, 0, 0), tournament.ends_at.utc
+    end
+
+    test "admin cannot change timezone once tournament is running" do
+      tournament = Tournament.create!(
+        name: "Immutable TZ Cup",
+        status: "running",
+        format: "single_elimination",
+        game_key: "chess",
+        time_control: "rapid",
+        time_zone: "UTC",
+        rated: true
+      )
+
+      patch admin_tournament_path(tournament), params: {
+        tournament: {
+          name: tournament.name,
+          status: "running",
+          format: tournament.format,
+          game_key: tournament.game_key,
+          time_control: tournament.time_control,
+          time_zone: "Asia/Singapore",
+          rated: tournament.rated
+        }
+      }
+
+      assert_response :unprocessable_entity
+      assert_equal "UTC", tournament.reload.time_zone
+      assert_match "Time zone cannot be changed after tournament starts", @response.body
     end
 
     test "admin can cancel tournament and rollback ratings" do

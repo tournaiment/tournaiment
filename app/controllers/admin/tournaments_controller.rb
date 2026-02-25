@@ -12,15 +12,17 @@ module Admin
         format: "single_elimination",
         game_key: "chess",
         time_control: "rapid",
+        time_zone: Tournament::DEFAULT_TIME_ZONE,
         rated: true,
         monied: false
       )
-      prepare_form_time_controls
+      prepare_form_options
     end
 
     def create
-      @tournament = Tournament.new(tournament_params)
-      prepare_form_time_controls
+      @tournament = Tournament.new
+      return render_with_form_options(:new) unless assign_tournament_attributes(@tournament)
+      prepare_form_options
 
       unless validate_time_control_selection(@tournament, @selected_preset_ids, @locked_preset_id)
         return render :new, status: :unprocessable_entity
@@ -34,7 +36,7 @@ module Admin
       AuditLog.log!(actor: current_admin, action: "admin.tournament_created", auditable: @tournament)
       redirect_to admin_tournament_path(@tournament), notice: "Tournament created."
     rescue ActiveRecord::RecordInvalid
-      prepare_form_time_controls
+      prepare_form_options
       render :new, status: :unprocessable_entity
     end
 
@@ -47,12 +49,12 @@ module Admin
     end
 
     def edit
-      prepare_form_time_controls
+      prepare_form_options
     end
 
     def update
-      @tournament.assign_attributes(tournament_params)
-      prepare_form_time_controls
+      return render_with_form_options(:edit) unless assign_tournament_attributes(@tournament)
+      prepare_form_options
 
       unless validate_time_control_selection(@tournament, @selected_preset_ids, @locked_preset_id)
         return render :edit, status: :unprocessable_entity
@@ -66,7 +68,7 @@ module Admin
       AuditLog.log!(actor: current_admin, action: "admin.tournament_updated", auditable: @tournament)
       redirect_to admin_tournament_path(@tournament), notice: "Tournament updated."
     rescue ActiveRecord::RecordInvalid
-      prepare_form_time_controls
+      prepare_form_options
       render :edit, status: :unprocessable_entity
     end
 
@@ -125,7 +127,8 @@ module Admin
     private
 
     def set_tournament
-      @tournament = Tournament.includes(:tournament_rounds, :tournament_entries).find(params[:id])
+      tournament_id = Tournament.id_from_param!(params[:id])
+      @tournament = Tournament.includes(:tournament_rounds, :tournament_entries).find(tournament_id)
     end
 
     def tournament_params
@@ -136,6 +139,7 @@ module Admin
         :format,
         :game_key,
         :time_control,
+        :time_zone,
         :rated,
         :monied,
         :max_players,
@@ -187,7 +191,8 @@ module Admin
       end
     end
 
-    def prepare_form_time_controls
+    def prepare_form_options
+      @time_zone_options = TZInfo::Timezone.all_identifiers
       @available_presets = available_presets_for(@tournament)
       ids, locked = selected_time_control_params
       if params.key?(:allowed_time_control_preset_ids) || params.key?(:locked_time_control_preset_id)
@@ -197,6 +202,52 @@ module Admin
         @selected_preset_ids = @tournament.allowed_time_control_presets.pluck(:id)
         @locked_preset_id = @tournament.locked_time_control_preset_id
       end
+    end
+
+    def render_with_form_options(template)
+      prepare_form_options
+      render template, status: :unprocessable_entity
+    end
+
+    def assign_tournament_attributes(tournament)
+      attrs = normalized_tournament_params(tournament)
+      return false unless attrs
+
+      tournament.assign_attributes(attrs)
+      true
+    end
+
+    def normalized_tournament_params(tournament)
+      attrs = tournament_params.to_h
+      zone_name = attrs["time_zone"].presence || tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE
+      attrs["time_zone"] = zone_name
+
+      zone = ActiveSupport::TimeZone[zone_name]
+      if zone.nil?
+        tournament.errors.add(:time_zone, "must be a valid IANA timezone identifier")
+        return nil
+      end
+
+      %w[starts_at ends_at].each do |key|
+        raw = attrs[key]
+        parsed = parse_local_datetime_in_zone(raw, zone)
+        if raw.present? && parsed.nil?
+          tournament.errors.add(key.to_sym, "is invalid for timezone #{zone_name}")
+          return nil
+        end
+        attrs[key] = parsed
+      end
+
+      attrs
+    end
+
+    def parse_local_datetime_in_zone(raw, zone)
+      return nil if raw.blank?
+      return raw.utc if raw.respond_to?(:utc)
+
+      zone.parse(raw.to_s)&.utc
+    rescue ArgumentError
+      nil
     end
 
     def notification_stats

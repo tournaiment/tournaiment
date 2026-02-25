@@ -42,6 +42,11 @@
     </div>
 
     <div>
+      <%= form.label :time_zone, "Tournament Time Zone" %>
+      <%= form.select :time_zone, options_for_select(@time_zone_options, tournament.time_zone), {}, class: "input" %>
+    </div>
+
+    <div>
       <%= form.label :max_players %>
       <%= form.number_field :max_players, min: 2, step: 1 %>
     </div>
@@ -58,14 +63,15 @@
 
     <div>
       <%= form.label :starts_at %>
-      <%= form.datetime_local_field :starts_at %>
+      <%= form.datetime_local_field :starts_at, value: tournament.starts_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M") %>
     </div>
 
     <div>
       <%= form.label :ends_at %>
-      <%= form.datetime_local_field :ends_at %>
+      <%= form.datetime_local_field :ends_at, value: tournament.ends_at&.in_time_zone(tournament.time_zone.presence || Tournament::DEFAULT_TIME_ZONE)&.strftime("%Y-%m-%dT%H:%M") %>
     </div>
   </div>
+  <p class="muted">Starts/Ends are interpreted in the selected tournament timezone and stored in UTC.</p>
 
   <div class="card stack">
     <h2>Preset Rules</h2>
