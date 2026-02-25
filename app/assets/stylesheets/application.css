@@ -1485,7 +1485,16 @@ pre {
   flex: 0 0 260px;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
+
+/* Earlier columns must paint above later ones so the connector arm clears the next column */
+.bracket-tree .bracket-round-col:nth-child(1) { z-index: 8; }
+.bracket-tree .bracket-round-col:nth-child(2) { z-index: 7; }
+.bracket-tree .bracket-round-col:nth-child(3) { z-index: 6; }
+.bracket-tree .bracket-round-col:nth-child(4) { z-index: 5; }
+.bracket-tree .bracket-round-col:nth-child(5) { z-index: 4; }
+.bracket-tree .bracket-round-col:nth-child(6) { z-index: 3; }
 
 .bracket-round-title {
   font-size: 0.8rem;
@@ -1501,7 +1510,7 @@ pre {
   flex-direction: column;
   justify-content: space-around;
   flex: 1;
-  gap: 8px;
+  gap: 32px;
 }
 
 .bracket-pair {
@@ -1513,27 +1522,45 @@ pre {
   position: relative;
 }
 
-/* Vertical connector joining two matchups in a pair */
-.bracket-pair:not(.bracket-pair--single)::after {
-  content: "";
-  position: absolute;
-  right: -1px;
-  top: 25%;
-  bottom: 25%;
-  width: 2px;
-  background: var(--border);
-}
-
-/* Horizontal stub from vertical midpoint into next round */
+/* Horizontal arm from pair midpoint into the next column */
 .bracket-pair:not(.bracket-pair--single)::before {
   content: "";
   position: absolute;
-  right: -1px;
+  right: -20px;
   top: 50%;
+  transform: translateY(-50%);
   width: 20px;
   height: 2px;
-  background: var(--border);
-  transform: translateX(0);
+  background: var(--muted);
+  opacity: 0.65;
+}
+
+/* Top matchup: ┐ corner from card centre down to pair midpoint */
+.bracket-pair:not(.bracket-pair--single) .bracket-matchup:first-child::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -9px;
+  width: 9px;
+  height: calc(50% + 4px);
+  border-top: 2px solid var(--muted);
+  border-right: 2px solid var(--muted);
+  opacity: 0.65;
+  box-sizing: border-box;
+}
+
+/* Bottom matchup: ┘ corner from card centre up to pair midpoint */
+.bracket-pair:not(.bracket-pair--single) .bracket-matchup:last-child::after {
+  content: "";
+  position: absolute;
+  bottom: 50%;
+  right: -9px;
+  width: 9px;
+  height: calc(50% + 4px);
+  border-bottom: 2px solid var(--muted);
+  border-right: 2px solid var(--muted);
+  opacity: 0.65;
+  box-sizing: border-box;
 }
 
 .bracket-matchup {
@@ -1550,27 +1577,6 @@ pre {
   border-radius: 10px 10px 0 0;
 }
 
-/* Horizontal stub: right side of matchup card into gap (except last round) */
-.bracket-matchup:not(.bracket-matchup--last)::after {
-  content: "";
-  position: absolute;
-  right: -9px;
-  top: 50%;
-  width: 9px;
-  height: 2px;
-  background: var(--border);
-}
-
-/* Horizontal entry: left side into matchup card (except first round) */
-.bracket-matchup:not(.bracket-matchup--first)::before {
-  content: "";
-  position: absolute;
-  left: -21px;
-  top: 50%;
-  width: 21px;
-  height: 2px;
-  background: var(--border);
-}
 
 .bracket-seed {
   display: flex;
