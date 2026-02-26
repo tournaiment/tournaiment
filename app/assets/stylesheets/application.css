@@ -823,9 +823,51 @@ pre {
   grid-template-columns: repeat(6, 1fr);
 }
 
+.tournament-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.tournament-schedule-block {
+  min-width: 0;
+}
+
+.time-display {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.time-line-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.time-line-value {
+  margin-top: 2px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.time-line-secondary .time-line-value {
+  color: #c6cde0;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
 @media (max-width: 720px) {
   .match-info-grid {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .tournament-schedule-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1474,15 +1516,21 @@ pre {
    ═══════════════════════════════════════════════════════ */
 
 .bracket-tree {
+  --bracket-col-gap: 36px;
+  --bracket-col-width: 270px;
+  --bracket-line-width: 1px;
+  --bracket-line-color: rgba(170, 182, 212, 0.8);
   display: flex;
-  gap: 0;
+  align-items: flex-start;
+  gap: var(--bracket-col-gap);
   overflow-x: auto;
-  padding: 12px 0;
+  overflow-y: visible;
+  padding: 12px 4px 14px;
   -webkit-overflow-scrolling: touch;
 }
 
 .bracket-round-col {
-  flex: 0 0 260px;
+  flex: 0 0 270px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1501,8 +1549,13 @@ pre {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--muted);
-  padding: 0 8px 12px;
+  color: #a9b5d8;
+  background: rgba(21, 21, 37, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  padding: 8px 10px;
+  margin: 0 0 12px;
 }
 
 .bracket-matchups {
@@ -1510,57 +1563,85 @@ pre {
   flex-direction: column;
   justify-content: space-around;
   flex: 1;
-  gap: 32px;
+  gap: 36px;
 }
 
-.bracket-pair {
+.bracket-tree--structured {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+  gap: var(--bracket-col-gap);
+}
+
+.bracket-tree--structured .bracket-round-col {
+  flex: 0 0 var(--bracket-col-width);
+  z-index: 2;
+}
+
+.bracket-tree--structured .bracket-round-title {
+  height: var(--bracket-title-height);
+  margin: 0;
+  padding: 0 10px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  flex: 1;
-  gap: 8px;
+}
+
+.bracket-tree--structured .bracket-round-track {
+  margin-top: var(--bracket-track-gap);
+  height: var(--bracket-track-height);
   position: relative;
 }
 
-/* Horizontal arm from pair midpoint into the next column */
-.bracket-pair:not(.bracket-pair--single)::before {
-  content: "";
+.bracket-tree--structured .bracket-matchup--placed {
   position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 2px;
-  background: var(--muted);
-  opacity: 0.65;
+  left: 0;
+  right: 0;
+  height: var(--bracket-node-height);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Top matchup: ┐ corner from card centre down to pair midpoint */
-.bracket-pair:not(.bracket-pair--single) .bracket-matchup:first-child::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -9px;
-  width: 9px;
-  height: calc(50% + 4px);
-  border-top: 2px solid var(--muted);
-  border-right: 2px solid var(--muted);
-  opacity: 0.65;
-  box-sizing: border-box;
+.bracket-tree--structured .bracket-seeds {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
-/* Bottom matchup: ┘ corner from card centre up to pair midpoint */
-.bracket-pair:not(.bracket-pair--single) .bracket-matchup:last-child::after {
-  content: "";
+.bracket-tree--structured .bracket-seed {
+  min-height: 0;
+  flex: 1 1 0;
+}
+
+.bracket-tree--structured .bracket-match-link {
+  flex: 0 0 auto;
+}
+
+.bracket-tree--structured .bracket-connectors {
   position: absolute;
-  bottom: 50%;
-  right: -9px;
-  width: 9px;
-  height: calc(50% + 4px);
-  border-bottom: 2px solid var(--muted);
-  border-right: 2px solid var(--muted);
-  opacity: 0.65;
-  box-sizing: border-box;
+  left: 0;
+  top: calc(var(--bracket-title-height) + var(--bracket-track-gap));
+  width: var(--bracket-tree-width);
+  height: var(--bracket-track-height);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+
+.bracket-tree--structured .bracket-connectors line,
+.bracket-tree--structured .bracket-connectors path {
+  stroke: var(--bracket-line-color);
+  stroke-width: var(--bracket-line-width);
+  fill: none;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
+}
+
+.bracket-tree--structured .bracket-matchup::before,
+.bracket-tree--structured .bracket-matchup::after {
+  content: none !important;
 }
 
 .bracket-matchup {
@@ -1569,10 +1650,13 @@ pre {
   border-radius: 10px;
   padding: 0;
   position: relative;
-  margin: 0 8px;
+  margin: 0;
+  z-index: 3;
+  overflow: visible;
 }
 
 .bracket-seeds {
+  background: rgba(10, 12, 28, 0.5);
   overflow: hidden;
   border-radius: 10px 10px 0 0;
 }
@@ -1582,9 +1666,21 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 9px 10px;
+  min-height: 42px;
   font-size: 0.92rem;
-  border-bottom: 1px solid var(--border);
+}
+
+.bracket-seed + .bracket-seed {
+  border-top: 1px solid var(--border);
+}
+
+.bracket-seed--slot-a {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.bracket-seed--slot-b {
+  background: rgba(15, 23, 42, 0.55);
 }
 
 .bracket-seed:last-of-type {
@@ -1592,12 +1688,21 @@ pre {
 }
 
 .bracket-seed--winner {
-  background: rgba(52, 211, 153, 0.12);
+  background: rgba(52, 211, 153, 0.14);
+  box-shadow: inset 4px 0 0 rgba(52, 211, 153, 0.65);
 }
 
 .bracket-seed--winner .bracket-seed-name {
   font-weight: 700;
-  color: #6ee7b7;
+  color: #84f3ca;
+}
+
+.bracket-seed--loser .bracket-seed-name {
+  color: #c0c7d8;
+}
+
+.bracket-seed--loser .bracket-seed-score {
+  color: #aeb6cc;
 }
 
 .bracket-seed--bye {
@@ -1613,9 +1718,11 @@ pre {
 }
 
 .bracket-seed-score {
+  min-width: 24px;
+  text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
-  color: var(--muted);
+  color: #c7d2fe;
   margin-left: 8px;
   flex-shrink: 0;
 }
@@ -1743,8 +1850,12 @@ pre {
    ═══════════════════════════════════════════════════════ */
 
 @media (max-width: 720px) {
-  .bracket-round-col {
-    flex: 0 0 220px;
+  .bracket-tree {
+    --bracket-col-gap: 24px;
+  }
+
+  .bracket-tree--structured .bracket-round-col {
+    flex: 0 0 var(--bracket-col-width);
   }
 
   .col-bar {

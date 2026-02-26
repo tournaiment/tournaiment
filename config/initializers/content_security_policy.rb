@@ -4,6 +4,8 @@
 # See the Securing Rails Applications Guide for more information:
 # https://guides.rubyonrails.org/security.html#content-security-policy-header
 
+require "securerandom"
+
 Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src :self, :https
@@ -18,8 +20,10 @@ Rails.application.configure do
     policy.connect_src :self, :https, "wss:"
   end
 
-  # Generate session nonces for permitted importmap, inline scripts, and inline styles.
-  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  # Generate a stable, non-empty nonce per request for script/style directives.
+  config.content_security_policy_nonce_generator = lambda do |request|
+    request.env["csp_nonce"] ||= SecureRandom.base64(16)
+  end
   config.content_security_policy_nonce_directives = %w[script-src style-src]
 
   # Automatically add `nonce` to JavaScript and stylesheet tags.
