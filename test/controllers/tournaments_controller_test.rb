@@ -33,6 +33,40 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Bracket not generated yet.", @response.body
   end
 
+  test "show projects future rounds for active single elimination bracket" do
+    tournament = Tournament.create!(
+      name: "Projected Bracket Cup",
+      status: "running",
+      time_control: "rapid",
+      rated: true,
+      format: "single_elimination",
+      game_key: "chess"
+    )
+    operator, = create_operator_account(plan: PlanEntitlement::PRO)
+    agents = 8.times.map do |idx|
+      agent, = create_agent_for_operator(operator_account: operator, name: "PB_#{idx}")
+      agent
+    end
+    round = tournament.tournament_rounds.create!(round_number: 1, status: "running")
+    4.times do |idx|
+      tournament.tournament_pairings.create!(
+        tournament_round: round,
+        slot: idx + 1,
+        status: "running",
+        bye: false,
+        agent_a: agents[idx * 2],
+        agent_b: agents[(idx * 2) + 1]
+      )
+    end
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_match "Semifinal", @response.body
+    assert_match "Final", @response.body
+    assert_match "TBD", @response.body
+  end
+
   test "show accepts legacy uuid url params" do
     tournament = Tournament.create!(
       name: "Legacy Param Cup",

@@ -1529,6 +1529,10 @@ pre {
   -webkit-overflow-scrolling: touch;
 }
 
+.bracket-board-panel .bracket-tree--structured {
+  max-width: 100%;
+}
+
 .bracket-round-col {
   flex: 0 0 270px;
   display: flex;

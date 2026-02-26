@@ -1,6 +1,6 @@
 <% panel_heading = local_assigns[:heading] || (@tournament.format == "round_robin" ? "Fixtures" : "Bracket") %>
 
-<div class="card stack">
+<div class="card stack bracket-board-panel">
   <h2><%= panel_heading %></h2>
 
   <% if rounds.blank? %>
@@ -8,15 +8,30 @@
   <% elsif @tournament.format == "single_elimination" %>
     <%# ── Single Elimination: deterministic bracket geometry with SVG connectors ── %>
     <%
-      rounds_data = rounds.each_with_index.map do |round, ri|
-        label = if ri == rounds.size - 1 && rounds.size > 1
+      first_round_pairings = [ rounds.first.tournament_pairings.size, 1 ].max
+      projected_round_count = [ (Math.log2(first_round_pairings).ceil + 1), rounds.size ].max
+      rounds_by_number = rounds.index_by(&:round_number)
+
+      rounds_data = (1..projected_round_count).map.with_index do |round_number, ri|
+        round = rounds_by_number[round_number]
+        target_pairings_count = [ (first_round_pairings.to_f / (2**ri)).ceil, 1 ].max
+        pairings_by_slot = round ? round.tournament_pairings.sort_by(&:slot).index_by(&:slot) : {}
+        projected_pairings = (1..target_pairings_count).map { |slot| pairings_by_slot[slot] }
+
+        label = if ri == projected_round_count - 1 && projected_round_count > 1
                   "Final"
-        elsif ri == rounds.size - 2 && rounds.size > 2
+        elsif ri == projected_round_count - 2 && projected_round_count > 2
                   "Semifinal"
         else
-                  "Round #{round.round_number}"
+                  "Round #{round_number}"
         end
-        { round_index: ri, label: label, pairings: round.tournament_pairings.sort_by(&:slot) }
+
+        {
+          round_index: ri,
+          round_number: round_number,
+          label: label,
+          pairings: projected_pairings
+        }
       end
 
       node_height = 128.0
@@ -55,7 +70,7 @@
           end
           if centers.size == 2
             y_top, y_bottom = centers.minmax
-            y_mid = if rounds_data[ri + 1][:pairings][pair_index]
+            y_mid = if pair_index < rounds_data[ri + 1][:pairings].size
                       node_top_for.call(ri + 1, pair_index + 1) + (node_height / 2.0)
             else
                       (y_top + y_bottom) / 2.0
@@ -109,32 +124,41 @@
           <div class="bracket-round-track">
             <% data[:pairings].each_with_index do |pairing, pairing_index| %>
               <%
-                result = pairing.match&.result.to_s
+                result = pairing&.match&.result.to_s
                 score_a, score_b = case result
                 when "1-0" then [ "1", "0" ]
                 when "0-1" then [ "0", "1" ]
                 when "1/2-1/2" then [ "1/2", "1/2" ]
                 else [ nil, nil ]
                 end
+
+                slot_a_name = pairing&.agent_a&.name || "TBD"
+                slot_b_name = if pairing.nil?
+                                "TBD"
+                elsif pairing.agent_b.present?
+                                pairing.agent_b.name
+                else
+                                "BYE"
+                end
               %>
               <div class="bracket-matchup bracket-matchup--placed bracket-matchup--r<%= data[:round_index] %>-p<%= pairing_index %>">
                 <div class="bracket-seeds">
-                  <div class="bracket-seed bracket-seed--slot-a <%= 'bracket-seed--winner' if pairing.winner_agent_id == pairing.agent_a_id %><%= ' bracket-seed--loser' if pairing.winner_agent_id.present? && pairing.winner_agent_id != pairing.agent_a_id %>">
-                    <span class="bracket-seed-name"><%= pairing.agent_a.name %></span>
+                  <div class="bracket-seed bracket-seed--slot-a <%= 'bracket-seed--winner' if pairing && pairing.winner_agent_id == pairing.agent_a_id %><%= ' bracket-seed--loser' if pairing && pairing.winner_agent_id.present? && pairing.winner_agent_id != pairing.agent_a_id %>">
+                    <span class="bracket-seed-name"><%= slot_a_name %></span>
                     <span class="bracket-seed-score"><%= score_a if score_a.present? %></span>
                   </div>
-                  <div class="bracket-seed bracket-seed--slot-b <%= 'bracket-seed--winner' if pairing.agent_b && pairing.winner_agent_id == pairing.agent_b_id %><%= ' bracket-seed--loser' if pairing.agent_b && pairing.winner_agent_id.present? && pairing.winner_agent_id != pairing.agent_b_id %><%= ' bracket-seed--bye' unless pairing.agent_b %>">
-                    <span class="bracket-seed-name"><%= pairing.agent_b&.name || "BYE" %></span>
+                  <div class="bracket-seed bracket-seed--slot-b <%= 'bracket-seed--winner' if pairing&.agent_b && pairing.winner_agent_id == pairing.agent_b_id %><%= ' bracket-seed--loser' if pairing&.agent_b && pairing.winner_agent_id.present? && pairing.winner_agent_id != pairing.agent_b_id %><%= ' bracket-seed--bye' if pairing && pairing.agent_b.blank? %>">
+                    <span class="bracket-seed-name"><%= slot_b_name %></span>
                     <span class="bracket-seed-score"><%= score_b if score_b.present? %></span>
                   </div>
                 </div>
                 <div class="bracket-match-link">
-                  <% if pairing.match %>
+                  <% if pairing&.match %>
                     <%= link_to public_match_path(pairing.match), class: "btn btn-secondary btn-sm" do %>
                       Match
                       <span class="status-badge status-<%= pairing.match.status %>"><%= pairing.match.status.humanize %></span>
                     <% end %>
-                  <% elsif pairing.bye? %>
+                  <% elsif pairing&.bye? %>
                     <span class="status-badge status-finished">Auto-advance</span>
                   <% else %>
                     <span class="status-badge status-pending">Pending</span>
