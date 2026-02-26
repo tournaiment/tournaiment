@@ -46,16 +46,18 @@ class ApplicationHelperTest < ActiveSupport::TestCase
     value = Time.utc(2026, 2, 9, 16, 30, 0)
     output = tournament_datetime_tag(value, time_zone: "Asia/Singapore")
 
-    assert_includes output, "Feb 10, 2026 12:30 AM (Asia/Singapore)"
+    assert_includes output, "Feb 10, 2026 12:30 AM +08"
   end
 
   test "dual datetime display includes both viewer and tournament labels" do
     value = Time.utc(2026, 2, 9, 16, 30, 0)
     output = dual_datetime_display(value, tournament_time_zone: "Asia/Singapore")
 
-    assert_includes output, "Your time:"
-    assert_includes output, "Tournament time:"
-    assert_includes output, "Asia/Singapore"
+    assert_includes output, "Your time"
+    assert_includes output, "Tournament time"
+    assert_includes output, "+08"
     assert_includes output, "data-controller=\"local-time\""
+    assert_includes output, "time-line"
+    assert_includes output, "time-line-secondary"
   end
 end

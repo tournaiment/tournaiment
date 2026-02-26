@@ -116,27 +116,26 @@ module ApplicationHelper
 
     zone = ActiveSupport::TimeZone[time_zone] || ActiveSupport::TimeZone[Tournament::DEFAULT_TIME_ZONE]
     zoned_time = value.in_time_zone(zone)
-    content_tag(:span, "#{zoned_time.strftime('%b %-d, %Y %-I:%M %p')} (#{zone.tzinfo.name})")
+    abbreviation = zoned_time.strftime("%Z").presence || zone.tzinfo.name
+    content_tag(:span, "#{zoned_time.strftime('%b %-d, %Y %-I:%M %p')} #{abbreviation}")
   end
 
   def dual_datetime_display(value, tournament_time_zone:, fallback: "TBD")
     local_value = value.present? ? local_datetime_tag(value, fallback: fallback) : fallback
     tournament_value = value.present? ? tournament_datetime_tag(value, time_zone: tournament_time_zone, fallback: fallback) : fallback
 
-    content_tag(:div, class: "stack") do
+    content_tag(:div, class: "time-display") do
       safe_join([
-        content_tag(:div) do
+        content_tag(:div, class: "time-line") do
           safe_join([
-            content_tag(:span, "Your time:", class: "stat-label"),
-            " ",
-            local_value
+            content_tag(:div, "Your time", class: "time-line-label"),
+            content_tag(:div, local_value, class: "time-line-value")
           ])
         end,
-        content_tag(:div) do
+        content_tag(:div, class: "time-line time-line-secondary") do
           safe_join([
-            content_tag(:span, "Tournament time:", class: "stat-label"),
-            " ",
-            tournament_value
+            content_tag(:div, "Tournament time", class: "time-line-label"),
+            content_tag(:div, tournament_value, class: "time-line-value")
           ])
         end
       ])

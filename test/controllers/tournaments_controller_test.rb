@@ -67,9 +67,10 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "data-controller=\"local-time\"", @response.body
     assert_match starts_at.iso8601, @response.body
     assert_match ends_at.iso8601, @response.body
-    assert_match "Your time:", @response.body
-    assert_match "Tournament time:", @response.body
-    assert_match "Asia/Singapore", @response.body
+    assert_match "Your time", @response.body
+    assert_match "Tournament time", @response.body
+    assert_match "+08", @response.body
+    assert_match "tournament-schedule-grid", @response.body
   end
 
   test "missing tournament show redirects to tournaments index" do

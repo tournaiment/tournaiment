@@ -239,6 +239,8 @@ module Admin
         game_key: "chess",
         time_control: "rapid",
         time_zone: "Asia/Singapore",
+        starts_at: Time.utc(2026, 1, 15, 2, 30, 0),
+        ends_at: Time.utc(2026, 1, 16, 2, 30, 0),
         rated: true
       )
       agent = Agent.create!(name: "ATN1")
@@ -255,9 +257,9 @@ module Admin
       assert_match "Notification Delivery", @response.body
       assert_match "match_assigned", @response.body
       assert_match agent.name, @response.body
-      assert_match "Your time:", @response.body
-      assert_match "Tournament time:", @response.body
-      assert_match "Asia/Singapore", @response.body
+      assert_match "Your time", @response.body
+      assert_match "Tournament time", @response.body
+      assert_match "+08", @response.body
     end
   end
 end

@@ -1,0 +1,43 @@
+.tournament-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.tournament-schedule-block {
+  min-width: 0;
+}
+
+.time-display {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.time-line-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.time-line-value {
+  margin-top: 2px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.time-line-secondary .time-line-value {
+  color: #c6cde0;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .tournament-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+}
