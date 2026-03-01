@@ -83,6 +83,13 @@ module DemoSeed
     invalid: "Demo Invalidated Cash Prize Cup"
   }.freeze
 
+  BASE_DEMO_TOURNAMENT_COUNT = DEMO_TOURNAMENT_NAMES.length
+  GENERATED_TOURNAMENT_NAME_PREFIX = "Demo Generated Knockout".freeze
+  GENERATED_TOURNAMENT_PRESET_KEYS = {
+    "chess" => "chess_rapid_10p0",
+    "go" => "go_rapid_10m_5x30"
+  }.freeze
+
   MODEL_POOL = [
     { provider: "openai", model_name: "gpt-4.1", model_version: "2025-11-15" },
     { provider: "openai", model_name: "gpt-4.1-mini", model_version: "2025-11-15" },
@@ -126,7 +133,7 @@ module DemoSeed
 
     ensure_time_control_presets!
     seed_agents
-    seed_matches if Match.count.zero?
+    seed_matches
     seed_tournaments
   end
 
@@ -230,12 +237,16 @@ module DemoSeed
     agents = Agent.where(name: agent_names).order(:created_at).to_a
     return if agents.length < 2
     target = (ENV["SEED_MATCHES"] || "1000").to_i
-    finished_cutoff = (target * 0.85).to_i
+    existing = existing_demo_match_count(agents)
+    remaining = [ target - existing, 0 ].max
+    return if remaining.zero?
+
+    finished_cutoff = (remaining * 0.85).to_i
     chess_games = load_chess_pgn_games
     go_games = load_go_sgf_games
     real_ratio = (ENV["SEED_REAL_GAMES_RATIO"] || "0.45").to_f.clamp(0.0, 1.0)
 
-    target.times do |i|
+    remaining.times do |i|
       white = agents.sample
       black = (agents - [ white ]).sample
       game_key = [ "chess", "go" ].sample
@@ -311,6 +322,11 @@ module DemoSeed
         match.update_columns(status: "running", started_at: started_at, updated_at: started_at)
       end
     end
+  end
+
+  def existing_demo_match_count(agents)
+    agent_ids = agents.map(&:id)
+    Match.where(tournament_id: nil, agent_a_id: agent_ids, agent_b_id: agent_ids).count
   end
 
   def random_rated_preset_for(game_key)
@@ -515,6 +531,124 @@ module DemoSeed
     seed_finished_cash_prize_tournament(agents)
     seed_cancelled_tournament(agents)
     seed_invalid_tournament(agents)
+    seed_generated_tournaments(agents)
+  end
+
+  def seed_generated_tournaments(agents)
+    extra_count = target_tournament_count - BASE_DEMO_TOURNAMENT_COUNT
+    return if extra_count <= 0
+
+    extra_count.times do |offset|
+      seed_generated_knockout_tournament(agents, index: offset + 1)
+    end
+  end
+
+  def seed_generated_knockout_tournament(agents, index:)
+    game_key = index.odd? ? "chess" : "go"
+    preset_key = GENERATED_TOURNAMENT_PRESET_KEYS.fetch(game_key)
+    starts_at = (70 + index * 2).days.ago
+    tournament = Tournament.find_or_initialize_by(name: generated_tournament_name(index))
+    tournament.assign_attributes(
+      description: "Auto-generated finished bracket for high-volume demo data.",
+      status: "finished",
+      format: "single_elimination",
+      game_key: game_key,
+      time_control: "rapid",
+      rated: false,
+      monied: false,
+      max_players: 8,
+      starts_at: starts_at,
+      ends_at: starts_at + 1.day
+    )
+    tournament.save!
+    sync_tournament_presets!(tournament, allowed_keys: [ preset_key ], locked_key: preset_key)
+    return if tournament.tournament_rounds.exists?
+
+    players = generated_tournament_players(agents, index: index, count: 8)
+    ensure_entries!(tournament, players)
+
+    round1 = tournament.tournament_rounds.create!(
+      round_number: 1,
+      status: "finished",
+      started_at: starts_at + 2.hours,
+      finished_at: starts_at + 8.hours
+    )
+    round2 = tournament.tournament_rounds.create!(
+      round_number: 2,
+      status: "finished",
+      started_at: starts_at + 10.hours,
+      finished_at: starts_at + 15.hours
+    )
+    round3 = tournament.tournament_rounds.create!(
+      round_number: 3,
+      status: "finished",
+      started_at: starts_at + 18.hours,
+      finished_at: starts_at + 22.hours
+    )
+
+    quarter_pairs = [ [ 0, 7 ], [ 3, 4 ], [ 1, 6 ], [ 2, 5 ] ]
+    semifinalists = quarter_pairs.each_with_index.map do |(a_idx, b_idx), slot_idx|
+      pairing = create_pairing_with_match!(
+        tournament: tournament,
+        round: round1,
+        slot: slot_idx + 1,
+        agent_a: players[a_idx],
+        agent_b: players[b_idx],
+        pairing_status: "finished",
+        match_status: "finished",
+        result: knockout_result(index: index, stage: 1, slot: slot_idx),
+        started_at: starts_at + (2 + slot_idx).hours,
+        finished_at: starts_at + (3 + slot_idx).hours
+      )
+      pairing.winner_agent
+    end
+
+    finalists = semifinalists.each_slice(2).each_with_index.map do |pair, slot_idx|
+      pairing = create_pairing_with_match!(
+        tournament: tournament,
+        round: round2,
+        slot: slot_idx + 1,
+        agent_a: pair[0],
+        agent_b: pair[1],
+        pairing_status: "finished",
+        match_status: "finished",
+        result: knockout_result(index: index, stage: 2, slot: slot_idx),
+        started_at: starts_at + (10 + slot_idx).hours,
+        finished_at: starts_at + (11 + slot_idx).hours
+      )
+      pairing.winner_agent
+    end
+
+    create_pairing_with_match!(
+      tournament: tournament,
+      round: round3,
+      slot: 1,
+      agent_a: finalists[0],
+      agent_b: finalists[1],
+      pairing_status: "finished",
+      match_status: "finished",
+      result: knockout_result(index: index, stage: 3, slot: 0),
+      started_at: starts_at + 19.hours,
+      finished_at: starts_at + 20.hours
+    )
+  end
+
+  def target_tournament_count
+    requested = (ENV["SEED_TOURNAMENTS"] || BASE_DEMO_TOURNAMENT_COUNT.to_s).to_i
+    [ requested, BASE_DEMO_TOURNAMENT_COUNT ].max
+  end
+
+  def generated_tournament_name(index)
+    format("%s %03d", GENERATED_TOURNAMENT_NAME_PREFIX, index)
+  end
+
+  def generated_tournament_players(agents, index:, count:)
+    offset = (index * 3) % agents.length
+    agents.rotate(offset).first(count)
+  end
+
+  def knockout_result(index:, stage:, slot:)
+    (index + stage + slot).odd? ? "1-0" : "0-1"
   end
 
   def build_demo_tournament!(key, attrs, allowed_preset_keys:, locked_preset_key: nil)

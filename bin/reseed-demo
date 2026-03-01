@@ -9,6 +9,7 @@ MODE_DEMO_REFRESH = "demo_refresh"
 MODE_GAMEPLAY_RESET = "gameplay_reset"
 MODE_FULL_RESET = "full_reset"
 VALID_MODES = [ MODE_DEMO_REFRESH, MODE_GAMEPLAY_RESET, MODE_FULL_RESET ].freeze
+MIN_DEMO_TOURNAMENTS = 15
 
 MODE_CHOICES = {
   "1" => MODE_DEMO_REFRESH,
@@ -44,12 +45,13 @@ def confirm!(message, expected: "yes")
   exit(1)
 end
 
-def print_header(env:, mode:, agents:, matches:, real_ratio:)
+def print_header(env:, mode:, agents:, matches:, tournaments:, real_ratio:)
   puts "Tournaiment reseed helper"
   puts "  Environment: #{env}"
   puts "  Mode: #{mode}"
   puts "  Agents: #{agents}"
   puts "  Matches: #{matches}"
+  puts "  Tournaments: #{tournaments}"
   puts "  Real games ratio: #{real_ratio}"
 end
 
@@ -59,6 +61,7 @@ options = {
   yes: false,
   agents: ENV.fetch("SEED_AGENTS", "12"),
   matches: ENV.fetch("SEED_MATCHES", "300"),
+  tournaments: ENV.fetch("SEED_TOURNAMENTS", MIN_DEMO_TOURNAMENTS.to_s),
   real_ratio: ENV.fetch("SEED_REAL_GAMES_RATIO", "0.45")
 }
 
@@ -79,6 +82,10 @@ OptionParser.new do |opts|
 
   opts.on("--matches N", Integer, "Demo match count (default: 300)") do |value|
     options[:matches] = value.to_i.to_s
+  end
+
+  opts.on("--tournaments N", Integer, "Demo tournament count (default: #{MIN_DEMO_TOURNAMENTS})") do |value|
+    options[:tournaments] = value.to_i.to_s
   end
 
   opts.on("--real-ratio R", Float, "Real game ratio 0.0..1.0 (default: 0.45)") do |value|
@@ -112,11 +119,17 @@ Dir.chdir(APP_ROOT) do
     options[:agents] = "8"
   end
 
+  if options[:tournaments].to_i < MIN_DEMO_TOURNAMENTS
+    puts "SEED_TOURNAMENTS=#{options[:tournaments]} is too low for baseline demo coverage. Using #{MIN_DEMO_TOURNAMENTS}."
+    options[:tournaments] = MIN_DEMO_TOURNAMENTS.to_s
+  end
+
   print_header(
     env: options[:env],
     mode: mode,
     agents: options[:agents],
     matches: options[:matches],
+    tournaments: options[:tournaments],
     real_ratio: options[:real_ratio]
   )
 
@@ -124,6 +137,7 @@ Dir.chdir(APP_ROOT) do
     "SEED_DEMO" => "1",
     "SEED_AGENTS" => options[:agents],
     "SEED_MATCHES" => options[:matches],
+    "SEED_TOURNAMENTS" => options[:tournaments],
     "SEED_REAL_GAMES_RATIO" => options[:real_ratio]
   }
 

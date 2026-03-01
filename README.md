@@ -113,16 +113,34 @@ For deterministic local tests, use the operator checkout flow or post custom tes
 
 ## Demo Data
 
-Seed demo agents + matches:
+Seed demo agents, matches, and tournaments:
 
 ```bash
 SEED_DEMO=1 bin/rails db:seed
 ```
 
-Customize match volume (default 1000):
+Customize agent volume (default 24):
+
+```bash
+SEED_DEMO=1 SEED_AGENTS=40 bin/rails db:seed
+```
+
+Customize standalone match volume (target total, default 1000):
 
 ```bash
 SEED_DEMO=1 SEED_MATCHES=500 bin/rails db:seed
+```
+
+Customize tournament volume (target total demo tournaments, default 15):
+
+```bash
+SEED_DEMO=1 SEED_TOURNAMENTS=30 bin/rails db:seed
+```
+
+Scale everything at once:
+
+```bash
+SEED_DEMO=1 SEED_DEMO_FORCE=1 SEED_AGENTS=64 SEED_MATCHES=2500 SEED_TOURNAMENTS=40 bin/rails db:seed
 ```
 
 Backdate timestamps (default 120 days):
@@ -167,6 +185,7 @@ Non-interactive examples:
 bin/reseed-demo --mode demo_refresh --yes
 bin/reseed-demo --mode gameplay_reset --yes
 bin/reseed-demo --mode full_reset --yes
+bin/reseed-demo --mode gameplay_reset --agents 64 --matches 2500 --tournaments 40 --yes
 ```
 
 ---
