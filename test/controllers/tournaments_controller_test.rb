@@ -158,4 +158,33 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Registration Open", response.body
     assert_match "Rapid", response.body
   end
+
+  test "index html paginates tournament table" do
+    31.times do |idx|
+      created_at = Time.current - idx.minutes
+      Tournament.create!(
+        name: format("Paged Cup %02d", idx),
+        status: "registration_open",
+        time_control: "rapid",
+        rated: false,
+        monied: false,
+        format: "single_elimination",
+        game_key: "chess",
+        created_at: created_at,
+        updated_at: created_at
+      )
+    end
+
+    hidden_on_page_one = Tournament.order(created_at: :desc).offset(30).first
+
+    get tournaments_path
+    assert_response :success
+    assert_match "Page 1 of 2", response.body
+    refute_match hidden_on_page_one.name, response.body
+
+    get tournaments_path(page: 2)
+    assert_response :success
+    assert_match "Page 2 of 2", response.body
+    assert_match hidden_on_page_one.name, response.body
+  end
 end

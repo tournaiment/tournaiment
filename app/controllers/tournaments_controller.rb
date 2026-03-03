@@ -5,12 +5,14 @@ class TournamentsController < ApplicationController
   before_action :set_tournament, only: [ :show, :register, :withdraw, :bracket, :table ]
 
   def index
-    @tournaments = Tournament.order(created_at: :desc)
+    scope = Tournament.order(created_at: :desc)
 
     respond_to do |format|
-      format.html
+      format.html do
+        @tournaments, @tournaments_pagination = paginate_scope(scope, default_per_page: 30, max_per_page: 100)
+      end
       format.json do
-        render json: @tournaments.map { |t| tournament_payload(t) }
+        render json: scope.map { |t| tournament_payload(t) }
       end
     end
   end

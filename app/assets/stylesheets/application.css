@@ -691,6 +691,24 @@ pre {
   text-decoration: none;
 }
 
+.table-meta {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pagination-controls {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .empty-state {
   margin-top: 24px;
   background: var(--panel);

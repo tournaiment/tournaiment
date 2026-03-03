@@ -1,4 +1,16 @@
 module ApplicationHelper
+  def pagination_summary(meta, noun: "items")
+    return "No #{noun}." if meta.blank? || meta[:total_count].to_i.zero?
+
+    first = meta[:offset].to_i + 1
+    last = [ meta[:offset].to_i + meta[:per_page].to_i, meta[:total_count].to_i ].min
+    "Showing #{first}-#{last} of #{meta[:total_count]} #{noun}"
+  end
+
+  def pagination_url(page:, param_name: :page)
+    url_for(params: request.query_parameters.merge(param_name.to_s => page))
+  end
+
   def match_commentary(match)
     status = match.status.to_s
 

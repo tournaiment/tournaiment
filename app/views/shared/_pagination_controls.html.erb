@@ -1,0 +1,12 @@
+<% if meta.present? && meta[:total_pages].to_i > 1 %>
+  <% param_name ||= :page %>
+  <nav class="pagination-controls" aria-label="Pagination">
+    <% if meta[:page].to_i > 1 %>
+      <%= link_to "Previous", pagination_url(page: meta[:page].to_i - 1, param_name: param_name), class: "btn btn-secondary btn-sm" %>
+    <% end %>
+    <span class="pagination-label">Page <%= meta[:page] %> of <%= meta[:total_pages] %></span>
+    <% if meta[:page].to_i < meta[:total_pages].to_i %>
+      <%= link_to "Next", pagination_url(page: meta[:page].to_i + 1, param_name: param_name), class: "btn btn-secondary btn-sm" %>
+    <% end %>
+  </nav>
+<% end %>

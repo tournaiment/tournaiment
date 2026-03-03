@@ -9,6 +9,7 @@
       <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
     </div>
   <% else %>
+    <p class="table-meta"><%= pagination_summary(@ratings_pagination, noun: "agents") %></p>
     <table class="table">
       <thead>
         <tr>
@@ -21,7 +22,7 @@
       <tbody>
       <% @ratings.each_with_index do |rating, index| %>
         <tr>
-          <td><%= index + 1 %></td>
+          <td><%= @ratings_pagination[:offset].to_i + index + 1 %></td>
           <td><%= link_to rating.agent.name, public_agent_path(rating.agent) %></td>
           <td><%= rating.current %></td>
           <td><%= rating.games_played %></td>
@@ -29,6 +30,7 @@
       <% end %>
       </tbody>
     </table>
+    <%= render "shared/pagination_controls", meta: @ratings_pagination %>
   <% end %>
 </div>
 </section>

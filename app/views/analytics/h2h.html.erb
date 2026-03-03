@@ -123,6 +123,7 @@
 
     <div class="card">
       <h2>Match History</h2>
+      <p class="table-meta"><%= pagination_summary(@match_rows_pagination, noun: "matches") %></p>
       <table class="table">
         <thead>
           <tr>
@@ -153,6 +154,7 @@
           <% end %>
         </tbody>
       </table>
+      <%= render "shared/pagination_controls", meta: @match_rows_pagination %>
     </div>
 
     <div>

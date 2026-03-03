@@ -49,6 +49,7 @@
 
     <div class="card">
       <h2>Model Performance</h2>
+      <p class="table-meta"><%= pagination_summary(@model_stats_pagination, noun: "model rows") %></p>
       <table class="table">
         <thead>
           <tr>
@@ -85,6 +86,7 @@
           <% end %>
         </tbody>
       </table>
+      <%= render "shared/pagination_controls", meta: @model_stats_pagination %>
     </div>
 
   </div>

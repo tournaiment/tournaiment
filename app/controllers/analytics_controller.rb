@@ -26,7 +26,7 @@ class AnalyticsController < ApplicationController
       ]
     end
 
-    @model_stats = grouped.map do |(game_key, provider, model_name, model_version), entries|
+    all_model_stats = grouped.map do |(game_key, provider, model_name, model_version), entries|
       stats = { wins: 0, losses: 0, draws: 0, total: 0 }
 
       entries.each do |entry|
@@ -68,6 +68,7 @@ class AnalyticsController < ApplicationController
         avg_rating: avg_rating
       }
     end.sort_by { |row| [ -row[:win_rate], -row[:total] ] }
+    @model_stats, @model_stats_pagination = paginate_array(all_model_stats, default_per_page: 30, max_per_page: 200)
 
     @games = GameRegistry.supported_keys
   end
@@ -87,11 +88,13 @@ class AnalyticsController < ApplicationController
     matches = Match.where(status: "finished", game_key: @game_key)
       .includes(:match_agent_models, :agent_a, :agent_b)
 
-    @h2h_summary, @match_rows = summarize_agent_h2h(matches, @agent_a, @agent_b)
+    @h2h_summary, match_rows = summarize_agent_h2h(matches, @agent_a, @agent_b)
     @chart_a = rating_series_for_agent(@agent_a, @game_key)
     @chart_b = rating_series_for_agent(@agent_b, @game_key)
-    @model_usage_a = model_usage_for_agent(@match_rows, @agent_a)
-    @model_usage_b = model_usage_for_agent(@match_rows, @agent_b)
+    @model_usage_a = model_usage_for_agent(match_rows, @agent_a)
+    @model_usage_b = model_usage_for_agent(match_rows, @agent_b)
+    sorted_rows = match_rows.sort_by { |row| row[:finished_at] || Time.at(0) }.reverse
+    @match_rows, @match_rows_pagination = paginate_array(sorted_rows, default_per_page: 30, max_per_page: 200)
 
     @games = GameRegistry.supported_keys
   end

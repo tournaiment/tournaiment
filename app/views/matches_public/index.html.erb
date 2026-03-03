@@ -18,6 +18,7 @@
       <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
     </div>
   <% else %>
+    <p class="table-meta"><%= pagination_summary(@matches_pagination, noun: "matches") %></p>
     <p id="matches-filter-status" style="display:none"></p>
     <table class="table" id="matches-table">
       <thead>
@@ -59,6 +60,7 @@
         <% end %>
       </tbody>
     </table>
+    <%= render "shared/pagination_controls", meta: @matches_pagination %>
     <div class="empty-state" id="matches-no-results" style="display:none">
       <p>No matches found.</p>
     </div>

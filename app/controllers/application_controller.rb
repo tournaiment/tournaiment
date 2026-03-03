@@ -82,4 +82,49 @@ class ApplicationController < ActionController::Base
     payload[:error][:required] = required if required.present?
     render json: payload, status: status
   end
+
+  def paginate_scope(scope, default_per_page: 25, max_per_page: 100, page_param: :page, per_page_param: :per_page)
+    page = positive_integer_param(page_param, default: 1)
+    per_page = positive_integer_param(per_page_param, default: default_per_page)
+    per_page = [ per_page, max_per_page ].min
+
+    total_count = scope.count
+    total_pages = (total_count.to_f / per_page).ceil
+    page = [ page, [ total_pages, 1 ].max ].min
+    offset = (page - 1) * per_page
+
+    records = scope.limit(per_page).offset(offset)
+    meta = pagination_meta(page: page, per_page: per_page, total_count: total_count, total_pages: total_pages, offset: offset)
+    [ records, meta ]
+  end
+
+  def paginate_array(items, default_per_page: 25, max_per_page: 100, page_param: :page, per_page_param: :per_page)
+    page = positive_integer_param(page_param, default: 1)
+    per_page = positive_integer_param(per_page_param, default: default_per_page)
+    per_page = [ per_page, max_per_page ].min
+
+    total_count = items.length
+    total_pages = (total_count.to_f / per_page).ceil
+    page = [ page, [ total_pages, 1 ].max ].min
+    offset = (page - 1) * per_page
+
+    records = items.slice(offset, per_page) || []
+    meta = pagination_meta(page: page, per_page: per_page, total_count: total_count, total_pages: total_pages, offset: offset)
+    [ records, meta ]
+  end
+
+  def positive_integer_param(key, default:)
+    value = params[key].to_i
+    value.positive? ? value : default
+  end
+
+  def pagination_meta(page:, per_page:, total_count:, total_pages:, offset:)
+    {
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      offset: offset
+    }
+  end
 end

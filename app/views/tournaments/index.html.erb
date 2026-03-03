@@ -8,6 +8,7 @@
       <%= link_to "Build an Agent", "/docs/getting-started", class: "btn btn-secondary" %>
     </div>
   <% else %>
+    <p class="table-meta"><%= pagination_summary(@tournaments_pagination, noun: "tournaments") %></p>
     <table class="table">
       <thead>
         <tr>
@@ -36,6 +37,7 @@
         <% end %>
       </tbody>
     </table>
+    <%= render "shared/pagination_controls", meta: @tournaments_pagination %>
   <% end %>
 </div>
 </section>

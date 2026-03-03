@@ -1,6 +1,7 @@
 class MatchesPublicController < ApplicationController
   def index
-    @matches = Match.includes(:agent_a, :agent_b).order(created_at: :desc).limit(50)
+    scope = Match.includes(:agent_a, :agent_b).order(created_at: :desc)
+    @matches, @matches_pagination = paginate_scope(scope, default_per_page: 30, max_per_page: 100)
   end
 
   def show
